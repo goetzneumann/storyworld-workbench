@@ -1,0 +1,1663 @@
+<title>Storyworld Workbench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Special+Elite&family=Courier+Prime:wght@400;700&family=Caveat:wght@500;700&family=Kalam:wght@400;700&family=Karla:wght@400;500;700&display=swap">
+<style>
+/* Layout: three-pane writing desk (scenes | manuscript | story world), collapsing to tabs on phones */
+:root {
+  --bg: #eef1ef; --surface: #ffffff; --sunk: #f6f8f7; --ink: #1c2421; --muted: #5a6560; --line: #d9dfdc;
+  --accent: #24566b; --accent-soft: #e2edf1;
+  --person: #b0416a; --place: #1d7a6c; --time: #a3660f; --object: #6b4fb3; --group: #4c7a24; --rule: #4b5563;
+  --error: #c2362b; --warning: #a8700f; --idea: #2f6fb0;
+  --f-book: "Literata", Georgia, "Times New Roman", serif;
+  --f-ui: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --surface: #1a1f1d; --sunk: #161a19; --ink: #e5ebe8; --muted: #98a39e; --line: #2c3431;
+  --accent: #82b8cc; --accent-soft: #1f3138;
+  --person: #ec8db0; --place: #5cc4b3; --time: #e3a853; --object: #ab90f2; --group: #9dc96b; --rule: #a7b0bc;
+  --error: #f07c71; --warning: #e4b15b; --idea: #82b2ea; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #121614; --surface: #1a1f1d; --sunk: #161a19; --ink: #e5ebe8; --muted: #98a39e; --line: #2c3431;
+  --accent: #82b8cc; --accent-soft: #1f3138;
+  --person: #ec8db0; --place: #5cc4b3; --time: #e3a853; --object: #ab90f2; --group: #9dc96b; --rule: #a7b0bc;
+  --error: #f07c71; --warning: #e4b15b; --idea: #82b2ea; color-scheme: dark; }
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-ui); font-size: 14px; overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr; }
+header.top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface); min-width: 0; }
+.brand { font-family: var(--f-book); font-weight: 600; font-size: 15px; letter-spacing: .01em; white-space: nowrap; }
+.brand span { color: var(--muted); font-weight: 400; }
+#bookTitle { border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 4px 8px; font-family: var(--f-book); font-size: 16px; min-width: 0; flex: 1 1 auto; max-width: 420px; }
+#bookTitle:hover, #bookTitle:focus { border-color: var(--line); background: var(--sunk); }
+.status { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spacer { flex: 1; }
+.chip-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 5px 11px; font-size: 13px; white-space: nowrap; }
+.chip-btn:hover { border-color: var(--accent); }
+.sev-count { display: inline-flex; align-items: center; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+
+.main { display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px; min-height: 0; }
+.pane { min-height: 0; overflow: auto; }
+.pane-scenes { border-right: 1px solid var(--line); background: var(--sunk); padding: 14px 12px; }
+.pane-panel { border-left: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+.pane-write { background: var(--bg); }
+.mobile-tabs { display: none; }
+
+/* Scenes */
+.side-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 6px 8px; }
+.chapter { margin-bottom: 14px; }
+.chapter-head { display: flex; align-items: center; gap: 6px; padding: 0 6px; }
+.chapter-head input { flex: 1; min-width: 0; border: 1px solid transparent; background: transparent; padding: 3px 4px; border-radius: 5px; font-weight: 600; font-size: 13px; }
+.chapter-head input:hover, .chapter-head input:focus { border-color: var(--line); background: var(--surface); }
+.scene-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; width: 100%; text-align: left; border: 1px solid transparent; background: none; border-radius: 7px; padding: 7px 8px; margin: 2px 0; }
+.scene-item:hover { background: var(--surface); border-color: var(--line); }
+.scene-item.active { background: var(--surface); border-color: var(--accent); }
+.scene-item .t { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-item .d { grid-column: 1; font-size: 11.5px; color: var(--muted); }
+.scene-item .flags { grid-row: 1 / span 2; grid-column: 2; display: flex; gap: 3px; align-items: center; }
+.add-link { border: none; background: none; color: var(--accent); font-size: 12.5px; padding: 4px 8px; }
+.add-link:hover { text-decoration: underline; }
+
+/* Editor */
+.write-wrap { max-width: 760px; margin: 0 auto; padding: 28px 32px 120px; }
+.scene-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 6px; color: var(--muted); font-size: 12.5px; }
+.scene-meta label { display: inline-flex; align-items: center; gap: 6px; }
+.scene-meta input { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 4px 7px; font-size: 12.5px; }
+.scene-meta input[type=text] { width: 230px; max-width: 100%; }
+#sceneTitle { width: 100%; border: none; background: transparent; font-family: var(--f-book); font-size: 30px; font-weight: 600; letter-spacing: -.01em; padding: 4px 0 10px; text-wrap: balance; }
+#sceneTitle:focus { outline: none; }
+.time-hint { font-size: 12px; color: var(--muted); font-style: italic; }
+.mark-hint { font-size: 12px; color: var(--muted); margin: 0 0 18px; }
+.mark-hint kbd { font-family: var(--f-mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--surface); }
+#editor { font-family: var(--f-book); font-size: 19px; line-height: 1.75; min-height: 50vh; outline: none; caret-color: var(--accent); }
+#editor p { margin: 0 0 1em; max-width: 66ch; }
+#editor:empty::before { content: "Start writing this scene…"; color: var(--muted); }
+.mk { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; text-decoration-color: var(--mk, var(--accent)); background: color-mix(in srgb, var(--mk, var(--accent)) 9%, transparent); border-radius: 2px; cursor: pointer; }
+.mk.multi { text-decoration-style: double; }
+.marks-off .mk { text-decoration: none; background: none; }
+.mk.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0% { background: color-mix(in srgb, var(--mk, var(--accent)) 45%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .mk.flash { animation: none; } }
+
+/* Floating mark UI */
+#markBtn { position: fixed; z-index: 30; border: none; border-radius: 999px; background: var(--ink); color: var(--surface); padding: 6px 12px; font-size: 12.5px; font-weight: 500; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.pop { position: fixed; z-index: 40; width: 300px; max-width: calc(100vw - 32px); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.18); padding: 10px; }
+.pop input { width: 100%; border: 1px solid var(--line); border-radius: 7px; padding: 7px 9px; background: var(--sunk); }
+.pop .opts { max-height: 220px; overflow: auto; margin: 8px 0; }
+.pop .opt { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; background: none; padding: 6px 8px; border-radius: 6px; }
+.pop .opt:hover, .pop .opt.sel { background: var(--accent-soft); }
+.pop .opt small { color: var(--muted); margin-left: auto; }
+.pop .create { border-top: 1px solid var(--line); padding-top: 8px; font-size: 12.5px; color: var(--muted); }
+.type-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.type-chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 3px 9px; font-size: 12.5px; }
+.type-chip:hover { border-color: var(--ink); }
+
+/* Panel */
+.tabs { display: flex; border-bottom: 1px solid var(--line); padding: 0 8px; flex: none; overflow-x: auto; }
+.tab { border: none; background: none; padding: 12px 10px 10px; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; }
+.tab.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 500; }
+.panel-body { overflow: auto; padding: 16px; flex: 1; min-height: 0; }
+.sec { margin-bottom: 22px; }
+.sec h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+.el-chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px 3px 8px; background: var(--surface); font-size: 13px; margin: 0 4px 6px 0; }
+.el-chip:hover { border-color: var(--ink); }
+.muted { color: var(--muted); }
+.small { font-size: 12.5px; }
+.trait { border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; margin-bottom: 8px; background: var(--surface); }
+.trait .row1 { display: flex; align-items: center; gap: 8px; }
+.trait .row1 b { font-weight: 600; }
+.badge { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; border-radius: 4px; padding: 1px 6px; border: 1px solid currentColor; white-space: nowrap; }
+.badge.hard { color: var(--error); } .badge.soft { color: var(--warning); } .badge.knowledge { color: var(--idea); }
+.trait .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.x { margin-left: auto; border: none; background: none; color: var(--muted); padding: 2px 6px; border-radius: 5px; }
+.x:hover { color: var(--error); background: var(--sunk); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 6px 12px; font-size: 13px; }
+.btn:hover { border-color: var(--ink); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.field { display: grid; gap: 4px; margin-bottom: 10px; }
+.field > span { font-size: 12px; color: var(--muted); }
+.field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--sunk); border-radius: 7px; padding: 7px 9px; width: 100%; }
+.field textarea { resize: vertical; min-height: 64px; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 10px; }
+.form-box { border: 1px dashed var(--line); border-radius: 9px; padding: 12px; margin-top: 8px; background: var(--sunk); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.two > * { min-width: 0; }
+
+.issue { display: grid; grid-template-columns: 4px 1fr; gap: 0 12px; padding: 10px 10px 10px 0; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; background: var(--surface); overflow: hidden; }
+.issue .stripe { border-radius: 0 3px 3px 0; }
+.issue.error .stripe { background: var(--error); } .issue.warning .stripe { background: var(--warning); } .issue.idea .stripe { background: var(--idea); }
+.issue .head { display: flex; gap: 8px; align-items: baseline; }
+.issue .title { font-weight: 600; }
+.issue .src { margin-left: auto; font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.issue .detail { margin: 4px 0 8px; color: var(--ink); line-height: 1.45; }
+.issue .where { font-size: 12px; color: var(--muted); }
+.issue .acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.issue .acts button { font-size: 12px; padding: 4px 9px; }
+.issue blockquote { margin: 6px 0; padding-left: 10px; border-left: 2px solid var(--line); font-family: var(--f-book); font-style: italic; color: var(--muted); }
+.sev-head { display: flex; align-items: center; gap: 8px; font-weight: 600; margin: 14px 0 8px; }
+.sev-head:first-child { margin-top: 0; }
+
+.el-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: none; background: none; padding: 8px; border-radius: 7px; }
+.el-row:hover { background: var(--sunk); }
+.el-row .n { font-weight: 500; }
+.el-row .c { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.dossier-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.dossier-name { font-family: var(--f-book); font-size: 24px; font-weight: 600; border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 2px 6px; width: 100%; min-width: 0; }
+.dossier-name:hover, .dossier-name:focus { border-color: var(--line); background: var(--sunk); }
+.summary { font-family: var(--f-book); font-size: 15px; line-height: 1.6; background: var(--sunk); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; }
+.appear { border-left: 2px solid var(--line); padding: 2px 0 2px 10px; margin-bottom: 10px; }
+.appear button { border: none; background: none; padding: 0; color: var(--accent); font-size: 12px; }
+.appear p { margin: 3px 0 0; font-family: var(--f-book); font-size: 14px; line-height: 1.5; }
+.appear mark { background: color-mix(in srgb, var(--mk, var(--accent)) 18%, transparent); color: inherit; border-radius: 2px; }
+.link-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.link-row .rel { color: var(--muted); font-style: italic; }
+.answer { font-family: var(--f-book); font-size: 15px; line-height: 1.6; white-space: pre-wrap; margin-top: 12px; }
+.media-card { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 12px; border: 1px solid var(--line); border-radius: 9px; padding: 10px; margin-bottom: 10px; background: var(--surface); }
+.media-thumb { width: 104px; height: 104px; border-radius: 6px; overflow: hidden; background: var(--sunk); display: grid; place-items: center; text-align: center; font-size: 11.5px; color: var(--muted); padding: 0; border: none; }
+.media-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-body { display: grid; gap: 6px; min-width: 0; }
+.media-body input, .media-body textarea, .media-body select { width: 100%; border: 1px solid var(--line); background: var(--sunk); border-radius: 6px; padding: 5px 8px; font-size: 13px; }
+.media-body textarea { min-height: 70px; resize: vertical; font-family: var(--f-book); font-size: 14px; line-height: 1.5; }
+.media-tags { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.media-tags .el-chip { margin: 0; font-size: 12px; padding: 2px 4px 2px 8px; }
+.media-tags .el-chip .x { padding: 0 4px; margin-left: 2px; }
+.detail-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.detail-list span { font-size: 11.5px; border-radius: 999px; padding: 1px 8px; background: var(--accent-soft); color: var(--ink); }
+.media-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.media-acts .btn { font-size: 12px; padding: 4px 9px; }
+.scene-media { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.sm-item { margin: 0; width: 104px; position: relative; }
+.sm-photo { width: 100%; height: 78px; padding: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--sunk); cursor: zoom-in; display: grid; place-items: center; font-size: 11px; color: var(--muted); }
+.sm-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sm-photo span { padding: 6px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.sm-item figcaption { font-size: 11.5px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.portrait { width: 46px; height: 46px; border-radius: 50%; overflow: hidden; padding: 0; border: 2px solid var(--mk); flex: none; cursor: zoom-in; background: var(--sunk); }
+.portrait img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-count { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; color: var(--muted); font-family: var(--f-mono); }
+.img-count svg { width: 12px; height: 12px; }
+.bible-wrap { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
+.bible-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); background: var(--surface); border-bottom: 1px solid var(--line); }
+.bible-scroll { flex: 1; overflow: auto; padding: 24px 16px 60px; }
+#biblePage { max-width: 860px; margin: 0 auto; box-shadow: 0 10px 40px rgba(0,0,0,.18); }
+.bible .b-edit { width: 100%; font: inherit; color: inherit; background: #fbfaf6; border: 1px dashed #c9c2b0; border-radius: 4px; padding: 8px 10px; resize: vertical; min-height: 3.2em; }
+.bible .b-edit:focus { outline: 2px solid #24566b; border-color: transparent; }
+.lightbox { position: fixed; inset: 0; z-index: 65; background: rgba(0,0,0,.8); display: grid; place-items: center; padding: 24px; cursor: zoom-out; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 4px; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+@media (max-width: 420px) { .media-card { grid-template-columns: 1fr; } .media-thumb { width: 100%; height: 180px; } }
+
+.banner { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 9px; padding: 10px 14px; margin-bottom: 22px; font-size: 13px; }
+.banner b { font-weight: 600; }
+.confirm { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.35); display: grid; place-items: center; padding: 16px; }
+.confirm .box { background: var(--surface); border-radius: 12px; padding: 18px; max-width: 380px; width: 100%; border: 1px solid var(--line); }
+.confirm h4 { margin: 0 0 6px; font-size: 16px; }
+.confirm p { margin: 0 0 16px; color: var(--muted); line-height: 1.45; }
+#toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--surface); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 70; max-width: calc(100vw - 32px); }
+
+/* Type colours */
+.t-person { --mk: var(--person); } .t-place { --mk: var(--place); } .t-time { --mk: var(--time); }
+.t-object { --mk: var(--object); } .t-group { --mk: var(--group); } .t-rule { --mk: var(--rule); }
+.tdot { width: 9px; height: 9px; border-radius: 50%; background: var(--mk); flex: none; display: inline-block; }
+
+@media (max-width: 1100px) { .main { grid-template-columns: 220px minmax(0, 1fr) 330px; } .write-wrap { padding: 22px 22px 100px; } }
+@media (max-width: 860px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .pane-scenes, .pane-panel, .pane-write { display: none; border: none; }
+  .app[data-view="scenes"] .pane-scenes, .app[data-view="write"] .pane-write { display: block; }
+  .app[data-view="world"] .pane-panel { display: flex; }
+  .app { grid-template-rows: auto auto 1fr; }
+  .mobile-tabs { display: flex; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .mobile-tabs button { flex: 1; border: none; background: none; padding: 10px 4px; font-size: 13px; color: var(--muted); border-bottom: 2px solid transparent; }
+  .mobile-tabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+  .write-wrap { padding: 18px 16px 100px; }
+  #sceneTitle { font-size: 24px; }
+  #editor { font-size: 17.5px; }
+  .brand span, .status, .skin-pick span { display: none; }
+  header.top { gap: 8px; }
+}
+.skin-pick { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.skin-pick select { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 8px; font-size: 13px; }
+
+/* =====================================================================
+   SKIN: TYPEWRITER — typed pages on a green felt desk mat, label-tape scenes,
+   a manila folder of sticky notes, highlighter marks, typewriter-key buttons.
+   A single deliberate look in both themes.
+   ===================================================================== */
+:root[data-skin="typewriter"] {
+  --bg: #43513f; --surface: #fbfaf4; --sunk: #f2efe4; --ink: #1f1d1a; --muted: #6b665c; --line: #d6d0c0;
+  --accent: #b3261e; --accent-soft: #f6e1dc;
+  --person: #ff6fa8; --place: #45c993; --time: #ffbf2e; --object: #a58cff; --group: #92cc55; --rule: #98a3ae;
+  --error: #c0392b; --warning: #a8700f; --idea: #2f6fb0;
+  --felt-text: #ece6d4; --manila: #f3e3b3; --manila-tab: #e4cf92;
+  --f-book: "Special Elite", "Courier Prime", "Courier New", monospace;
+  --f-ui: "Courier Prime", "Courier New", ui-monospace, monospace;
+  --f-hand: "Caveat", "Comic Sans MS", cursive;
+  color-scheme: light;
+}
+[data-skin="typewriter"] body { background-color: var(--bg); background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.2px), radial-gradient(rgba(0,0,0,.08) 1px, transparent 1.2px); background-size: 4px 4px, 7px 7px; }
+[data-skin="typewriter"] header.top { background: #1c201e; border-bottom: 3px solid #0d0f0e; color: var(--felt-text); }
+[data-skin="typewriter"] .brand { font-family: var(--f-book); text-transform: uppercase; letter-spacing: .14em; color: var(--felt-text); font-weight: 400; }
+[data-skin="typewriter"] .brand span { color: #ec6a5e; }
+[data-skin="typewriter"] #bookTitle { font-family: var(--f-book); color: var(--felt-text); }
+[data-skin="typewriter"] #bookTitle:hover, [data-skin="typewriter"] #bookTitle:focus { background: rgba(255,255,255,.08); border-color: transparent; }
+[data-skin="typewriter"] .status, [data-skin="typewriter"] .skin-pick { color: #a9b1a6; }
+[data-skin="typewriter"] .chip-btn, [data-skin="typewriter"] .skin-pick select { background: #2f3532; color: var(--felt-text); border: 2px solid #4b524e; border-radius: 999px; box-shadow: 0 3px 0 #070807, inset 0 1px 0 rgba(255,255,255,.18); font-family: var(--f-ui); }
+[data-skin="typewriter"] .chip-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #070807; }
+[data-skin="typewriter"] .pane-scenes { background: transparent; border-right: none; }
+[data-skin="typewriter"] .side-label { color: var(--felt-text); font-family: var(--f-book); }
+[data-skin="typewriter"] .chapter-head input { font-family: var(--f-book); color: var(--felt-text); font-weight: 400; font-size: 14px; }
+[data-skin="typewriter"] .chapter-head input:hover, [data-skin="typewriter"] .chapter-head input:focus { background: rgba(255,255,255,.08); border-color: transparent; }
+[data-skin="typewriter"] .pane-scenes .muted { color: #cdd3c6; }
+[data-skin="typewriter"] .scene-item { background: #17191a; color: #f6f3ea; border: none; border-radius: 3px; margin: 9px 0; padding: 8px 10px; box-shadow: 0 2px 0 #000, inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.5); transform: rotate(-.7deg); font-family: var(--f-ui); }
+[data-skin="typewriter"] .chapter .scene-item:nth-of-type(even) { transform: rotate(.6deg); }
+[data-skin="typewriter"] .scene-item .t { text-transform: uppercase; letter-spacing: .1em; font-weight: 700; font-size: 12.5px; text-shadow: 0 -1px 0 rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.2); }
+[data-skin="typewriter"] .scene-item .d { color: #b8b3a6; }
+[data-skin="typewriter"] .scene-item:hover { background: #24282a; }
+[data-skin="typewriter"] .scene-item.active { background: #a3221b; }
+[data-skin="typewriter"] .scene-item.active .d { color: #f3c9c4; }
+[data-skin="typewriter"] .add-link { color: #8a2a17; font-family: var(--f-ui); font-weight: 700; }
+[data-skin="typewriter"] .pane-scenes .add-link { color: #f5d76e; font-weight: 400; }
+[data-skin="typewriter"] .pane-write { background: transparent; }
+[data-skin="typewriter"] .write-wrap { background: var(--surface); margin: 28px auto 64px; padding: 54px 64px 110px; box-shadow: 0 1px 0 #d9d4c3, 0 2px 0 #ece8dc, 0 3px 0 #d0cab8, 0 22px 44px rgba(0,0,0,.4); }
+[data-skin="typewriter"] .scene-meta, [data-skin="typewriter"] .scene-meta input { font-family: var(--f-ui); }
+[data-skin="typewriter"] .scene-meta input { background: transparent; border: none; border-bottom: 1px dashed #a8a191; border-radius: 0; }
+[data-skin="typewriter"] #sceneTitle { font-family: var(--f-book); font-weight: 400; text-transform: uppercase; letter-spacing: .06em; font-size: 28px; border-bottom: 3px double var(--ink); margin-bottom: 8px; }
+[data-skin="typewriter"] .mark-hint { font-family: var(--f-ui); }
+[data-skin="typewriter"] .mark-hint kbd { border-radius: 999px; padding: 0 6px; background: #2f3532; color: #f6f3ea; border: none; box-shadow: 0 2px 0 #000; }
+[data-skin="typewriter"] #editor { font-family: var(--f-book); font-size: 18.5px; line-height: 1.95; letter-spacing: .01em; }
+[data-skin="typewriter"] .mk { text-decoration: none; padding: 0 3px; margin: 0 -1px; border-radius: 3px 9px 4px 10px; background: linear-gradient(100deg, transparent 1%, color-mix(in srgb, var(--mk) 55%, transparent) 3%, color-mix(in srgb, var(--mk) 42%, transparent) 96%, transparent 99%); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+[data-skin="typewriter"] .mk.multi { box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--ink) 35%, transparent); }
+[data-skin="typewriter"] .marks-off .mk { background: none; box-shadow: none; }
+[data-skin="typewriter"] #markBtn { background: var(--surface); color: var(--accent); border: 2.5px solid var(--accent); border-radius: 5px; font-family: var(--f-book); text-transform: uppercase; letter-spacing: .18em; transform: rotate(-4deg); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
+[data-skin="typewriter"] .pop, [data-skin="typewriter"] .confirm .box { background: #fff repeating-linear-gradient(#fff 0 25px, #c9dcef 25px 26px); border: none; border-top: 4px solid #e39b97; border-radius: 2px; font-family: var(--f-ui); box-shadow: 0 14px 30px rgba(0,0,0,.3); }
+[data-skin="typewriter"] .pop input { background: #fffdf3; }
+[data-skin="typewriter"] .pane-panel { background: transparent; border-left: none; }
+[data-skin="typewriter"] .tabs { border-bottom: none; padding: 12px 14px 0; gap: 3px; }
+[data-skin="typewriter"] .tab { background: var(--manila-tab); color: #4a3f25; border: none; border-radius: 9px 9px 0 0; padding: 8px 9px 7px; font-family: var(--f-ui); font-size: 12.5px; }
+[data-skin="typewriter"] .tab.on { background: var(--manila); color: var(--ink); font-weight: 700; }
+[data-skin="typewriter"] .panel-body { background: var(--manila); margin: 0 14px 14px; border-radius: 0 7px 7px 7px; box-shadow: 0 14px 30px rgba(0,0,0,.35); font-family: var(--f-ui); padding: 18px 16px; }
+[data-skin="typewriter"] .sec h3 { font-family: var(--f-book); color: #6d5a2a; letter-spacing: .16em; font-weight: 400; }
+[data-skin="typewriter"] .sev-head { font-family: var(--f-hand); font-size: 26px; font-weight: 700; }
+[data-skin="typewriter"] .issue { position: relative; overflow: visible; grid-template-columns: 1fr; padding: 16px 14px 12px; border: none; border-radius: 2px; margin: 0 4px 18px; background: #fff27a; box-shadow: 0 10px 14px -8px rgba(0,0,0,.45), 0 1px 1px rgba(0,0,0,.12); transform: rotate(-1deg); }
+[data-skin="typewriter"] .issue:nth-of-type(even) { transform: rotate(1.1deg); }
+[data-skin="typewriter"] .issue.error { background: #ffb6c9; } [data-skin="typewriter"] .issue.idea { background: #b3e5ff; }
+[data-skin="typewriter"] .issue::before { content: ""; position: absolute; top: -9px; left: 50%; width: 70px; height: 18px; margin-left: -35px; background: rgba(255,255,255,.55); box-shadow: 0 1px 2px rgba(0,0,0,.12); transform: rotate(-3deg); }
+[data-skin="typewriter"] .issue .stripe { display: none; }
+[data-skin="typewriter"] .issue .title { font-family: var(--f-hand); font-size: 22px; line-height: 1.1; font-weight: 700; }
+[data-skin="typewriter"] .issue .src { color: #6b5f3c; }
+[data-skin="typewriter"] .issue .where { color: #5b5240; }
+[data-skin="typewriter"] .issue blockquote { border-left-color: rgba(0,0,0,.25); color: #4b4535; font-family: var(--f-book); font-style: normal; }
+[data-skin="typewriter"] .btn { background: var(--surface); border: 1.5px solid var(--ink); border-radius: 999px; box-shadow: 0 2px 0 var(--ink); font-family: var(--f-ui); }
+[data-skin="typewriter"] .btn:active { transform: translateY(2px); box-shadow: none; }
+[data-skin="typewriter"] .btn.primary { background: var(--ink); color: var(--surface); }
+[data-skin="typewriter"] .trait, [data-skin="typewriter"] .summary, [data-skin="typewriter"] .el-chip { background: #fff; border: 1px solid #d9cfae; border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
+[data-skin="typewriter"] .summary { font-family: var(--f-book); font-size: 14.5px; }
+[data-skin="typewriter"] .badge { font-family: var(--f-book); border-width: 2px; border-radius: 3px; transform: rotate(-3deg); display: inline-block; }
+[data-skin="typewriter"] .field input, [data-skin="typewriter"] .field select, [data-skin="typewriter"] .field textarea, [data-skin="typewriter"] #elFilter { background: #fffdf3 !important; border-color: #cdbf92 !important; }
+[data-skin="typewriter"] .dossier-name { font-family: var(--f-book); font-weight: 400; }
+[data-skin="typewriter"] .media-card { background: #fff; border: 1px solid #d9cfae; border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,.08); }
+[data-skin="typewriter"] .media-thumb { background: #fff; padding: 5px 5px 16px; border-radius: 1px; box-shadow: 0 3px 8px rgba(0,0,0,.25); transform: rotate(-2deg); }
+[data-skin="typewriter"] .media-body input, [data-skin="typewriter"] .media-body select { background: transparent; border: none; border-bottom: 1px dashed #b9b19c; border-radius: 0; font-family: var(--f-ui); padding-left: 0; }
+[data-skin="typewriter"] .media-body textarea { font-family: var(--f-book); background: #fff repeating-linear-gradient(#fff 0 20px, #dbe6f1 20px 21px); background-attachment: local; line-height: 21px; border: 1px solid #e3dcc6; border-radius: 1px; }
+[data-skin="typewriter"] .detail-list span { background: #17191a; color: #f6f3ea; font-family: var(--f-ui); font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: 10.5px; border-radius: 2px; padding: 2px 7px; box-shadow: 0 1px 0 #000, inset 0 1px 0 rgba(255,255,255,.15); }
+[data-skin="typewriter"] .detail-list span:nth-child(3n+2) { background: #a3221b; } [data-skin="typewriter"] .detail-list span:nth-child(3n) { background: #1d4f73; }
+[data-skin="typewriter"] .scene-media { float: right; flex-direction: column; flex-wrap: nowrap; width: 156px; margin: 0 -40px 18px 22px; gap: 0; }
+[data-skin="typewriter"] .sm-item { width: 156px; background: #fff; padding: 8px 8px 6px; box-shadow: 0 8px 16px rgba(0,0,0,.28); transform: rotate(3deg); margin-bottom: -4px; }
+[data-skin="typewriter"] .sm-item:nth-child(even) { transform: rotate(-2.5deg); }
+[data-skin="typewriter"] .sm-item::before { content: ""; position: absolute; top: -14px; left: 20px; width: 12px; height: 38px; border: 2.5px solid #8d969e; border-radius: 7px; transform: rotate(-8deg); z-index: 1; }
+[data-skin="typewriter"] .sm-photo { height: 116px; border: none; border-radius: 0; }
+[data-skin="typewriter"] .sm-item figcaption { font-family: var(--f-hand); font-size: 18px; line-height: 1.1; color: var(--ink); text-align: center; white-space: normal; margin-top: 5px; }
+[data-skin="typewriter"] .portrait { width: 54px; height: 62px; border-radius: 1px; border: 4px solid #fff; border-bottom-width: 12px; box-shadow: 0 4px 9px rgba(0,0,0,.3); transform: rotate(-4deg); }
+[data-skin="typewriter"] .scene-item .img-count { color: #cfc9b8; }
+[data-skin="typewriter"] .el-row:hover { background: rgba(0,0,0,.05); }
+[data-skin="typewriter"] .form-box { background: #fffbe6; border-color: #cdbf92; }
+[data-skin="typewriter"] .banner { background: #fff27a; border: none; border-radius: 2px; transform: rotate(-.5deg); box-shadow: 0 10px 14px -8px rgba(0,0,0,.4); font-family: var(--f-ui); }
+[data-skin="typewriter"] #toast { background: #1c201e; color: var(--felt-text); font-family: var(--f-ui); border-radius: 3px; }
+[data-skin="typewriter"] .mobile-tabs { background: #1c201e; border-bottom-color: #0d0f0e; }
+[data-skin="typewriter"] .mobile-tabs button { color: #a9b1a6; font-family: var(--f-ui); }
+[data-skin="typewriter"] .mobile-tabs button.on { color: var(--felt-text); border-bottom-color: #ec6a5e; }
+
+/* =====================================================================
+   SKIN: CORKBOARD — a pinboard in a wooden frame: scenes as pinned index
+   cards, the manuscript on lined notebook paper, issues on a clipboard,
+   marks drawn as red-string wavy lines. A single deliberate look.
+   ===================================================================== */
+:root[data-skin="corkboard"] {
+  --bg: #b4844f; --surface: #fffdf7; --sunk: #f6f1e5; --ink: #24201b; --muted: #6e6557; --line: #e3dbcb;
+  --accent: #c42f2a; --accent-soft: #f9e0dc;
+  --person: #d43a6f; --place: #12876f; --time: #c98500; --object: #6a4fc8; --group: #4f8a1f; --rule: #56616f;
+  --error: #c0392b; --warning: #a8700f; --idea: #2f6fb0;
+  --wood: #5d3b1d; --kraft: #f0e2c2; --ruled: #cfe0f2;
+  --f-book: "Courier Prime", "Courier New", monospace;
+  --f-ui: "Karla", system-ui, sans-serif;
+  --f-hand: "Kalam", "Comic Sans MS", cursive;
+  color-scheme: light;
+}
+[data-skin="corkboard"] body { background-color: var(--bg); background-image: radial-gradient(circle at 30% 40%, rgba(70,35,10,.38) 1px, transparent 1.8px), radial-gradient(circle at 70% 60%, rgba(255,235,200,.28) 1px, transparent 1.8px), radial-gradient(circle at 50% 50%, rgba(90,45,15,.25) 1.4px, transparent 2.4px); background-size: 9px 11px, 13px 15px, 21px 19px; }
+[data-skin="corkboard"] header.top { background: linear-gradient(#73492a, var(--wood)); border-bottom: 7px solid #3d2511; color: #f8ecd8; box-shadow: 0 3px 8px rgba(0,0,0,.35); }
+[data-skin="corkboard"] .brand { font-family: var(--f-hand); font-size: 19px; color: #f8ecd8; font-weight: 700; }
+[data-skin="corkboard"] .brand span { color: #f2c48a; }
+[data-skin="corkboard"] #bookTitle { font-family: var(--f-hand); font-size: 18px; color: #f8ecd8; }
+[data-skin="corkboard"] #bookTitle:hover, [data-skin="corkboard"] #bookTitle:focus { background: rgba(255,255,255,.1); border-color: transparent; }
+[data-skin="corkboard"] .status, [data-skin="corkboard"] .skin-pick { color: #e6cfae; }
+[data-skin="corkboard"] .chip-btn, [data-skin="corkboard"] .skin-pick select { background: var(--kraft); color: var(--ink); border: none; border-radius: 3px; box-shadow: 2px 2px 0 #2e1b0b; }
+[data-skin="corkboard"] .pane-scenes { background: transparent; border-right: 6px solid #3d2511; padding: 18px 16px; }
+[data-skin="corkboard"] .side-label { display: inline-block; background: var(--kraft); color: #3d2511; padding: 2px 8px; transform: rotate(-2deg); font-family: var(--f-hand); text-transform: none; letter-spacing: 0; font-size: 14px; }
+[data-skin="corkboard"] .chapter-head { background: var(--kraft); border-radius: 2px; padding: 2px 8px; box-shadow: 0 3px 6px rgba(0,0,0,.25); transform: rotate(.8deg); margin-bottom: 6px; }
+[data-skin="corkboard"] .chapter-head input { font-family: var(--f-hand); font-size: 16px; }
+[data-skin="corkboard"] .pane-scenes > .muted, [data-skin="corkboard"] .pane-scenes p.muted { color: #fff1db; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+[data-skin="corkboard"] .scene-item { position: relative; background: var(--surface) repeating-linear-gradient(transparent 0 19px, var(--ruled) 19px 20px); background-position: 0 30px; border: none; border-top: 3px solid #e88b86; border-radius: 1px; margin: 14px 0; padding: 10px 10px 8px; box-shadow: 0 6px 12px rgba(0,0,0,.3); transform: rotate(-1.2deg); }
+[data-skin="corkboard"] .chapter .scene-item:nth-of-type(even) { transform: rotate(1deg); }
+[data-skin="corkboard"] .scene-item::before { content: ""; position: absolute; top: -8px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8a80, #c42f2a 55%, #7d1612); box-shadow: 1px 3px 3px rgba(0,0,0,.4); }
+[data-skin="corkboard"] .scene-item .t { font-family: var(--f-hand); font-size: 16px; font-weight: 700; }
+[data-skin="corkboard"] .scene-item:hover { background-color: #fff; transform: rotate(0) scale(1.02); }
+[data-skin="corkboard"] .scene-item.active { box-shadow: 0 0 0 3px #f2c48a, 0 8px 16px rgba(0,0,0,.35); }
+[data-skin="corkboard"] .scene-item.active::before { background: radial-gradient(circle at 35% 35%, #9be7a5, #2e9b48 55%, #145a24); }
+[data-skin="corkboard"] .pane-scenes .add-link { color: #fff1db; text-shadow: 0 1px 2px rgba(0,0,0,.6); font-weight: 700; }
+[data-skin="corkboard"] .pane-write { background: transparent; }
+[data-skin="corkboard"] .write-wrap { position: relative; background: var(--surface); margin: 30px auto 64px; padding: 44px 56px 110px 84px; box-shadow: 0 16px 34px rgba(0,0,0,.4); background-image: linear-gradient(90deg, transparent 62px, #eda3a3 62px, #eda3a3 64px, transparent 64px); }
+[data-skin="corkboard"] .write-wrap::before { content: ""; position: absolute; top: -9px; left: 50%; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe08a, #e0a800 55%, #8a6200); box-shadow: 1px 4px 4px rgba(0,0,0,.4); }
+[data-skin="corkboard"] #sceneTitle { font-family: var(--f-hand); font-size: 32px; font-weight: 700; }
+[data-skin="corkboard"] #editor { font-family: var(--f-book); font-size: 17px; line-height: 32px; background: repeating-linear-gradient(transparent 0 31px, var(--ruled) 31px 32px); }
+[data-skin="corkboard"] #editor p { margin: 0 0 32px; }
+[data-skin="corkboard"] .mk { background: none; text-decoration: underline wavy var(--mk); text-decoration-thickness: 1.5px; text-underline-offset: 5px; }
+[data-skin="corkboard"] .mk.multi { text-decoration-style: wavy; box-shadow: inset 0 -1px 0 var(--mk); }
+[data-skin="corkboard"] .marks-off .mk { text-decoration: none; box-shadow: none; }
+[data-skin="corkboard"] #markBtn { background: var(--accent); color: #fff; border-radius: 3px; font-family: var(--f-hand); font-size: 15px; font-weight: 700; transform: rotate(-3deg); }
+[data-skin="corkboard"] .pop, [data-skin="corkboard"] .confirm .box { background: var(--surface) repeating-linear-gradient(transparent 0 23px, var(--ruled) 23px 24px); border: none; border-top: 3px solid #e88b86; border-radius: 1px; box-shadow: 0 14px 30px rgba(0,0,0,.35); }
+[data-skin="corkboard"] .pane-panel { background: transparent; border-left: 6px solid #3d2511; }
+[data-skin="corkboard"] .tabs { border-bottom: none; padding: 14px 14px 4px; gap: 6px; }
+[data-skin="corkboard"] .tab { background: var(--kraft); color: #3d2511; border: none; border-radius: 2px; padding: 6px 10px; font-family: var(--f-hand); font-size: 15px; box-shadow: 0 3px 5px rgba(0,0,0,.25); transform: rotate(-1.5deg); }
+[data-skin="corkboard"] .tab:nth-child(even) { transform: rotate(1.2deg); }
+[data-skin="corkboard"] .tab.on { background: #fff; color: var(--ink); font-weight: 700; }
+[data-skin="corkboard"] .panel-body { position: relative; background: #a77b52; margin: 18px 14px 14px; padding: 30px 16px 18px; border-radius: 10px; box-shadow: 0 14px 30px rgba(0,0,0,.4), inset 0 0 0 4px #8f6440; }
+[data-skin="corkboard"] .panel-body::before { content: ""; position: sticky; top: -30px; display: block; width: 120px; height: 22px; margin: -30px auto 14px; border-radius: 0 0 8px 8px; background: linear-gradient(#e2e6ea, #9aa3ab); box-shadow: 0 3px 4px rgba(0,0,0,.35); z-index: 2; }
+[data-skin="corkboard"] .panel-body > *:not(.issue):not(.sev-head):not(.sec):not(.btn-row):not(.type-row) , [data-skin="corkboard"] .sec { background: var(--surface); border-radius: 2px; padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,.25); }
+[data-skin="corkboard"] .panel-body > .btn-row, [data-skin="corkboard"] .panel-body > .type-row { background: transparent; }
+[data-skin="corkboard"] .panel-body > .add-link { display: inline-block; padding: 4px 10px; margin-bottom: 10px; }
+[data-skin="corkboard"] .sec { margin-bottom: 16px; }
+[data-skin="corkboard"] .sec h3 { font-family: var(--f-hand); font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--accent); }
+[data-skin="corkboard"] .sev-head { display: inline-flex; background: var(--kraft); padding: 3px 10px; border-radius: 2px; transform: rotate(-1.5deg); font-family: var(--f-hand); font-size: 17px; box-shadow: 0 3px 5px rgba(0,0,0,.25); }
+[data-skin="corkboard"] .issue { position: relative; overflow: visible; grid-template-columns: 1fr; padding: 16px 14px 12px; border: none; border-radius: 1px; border-top: 3px solid var(--idea); margin: 4px 2px 18px; background: var(--surface) repeating-linear-gradient(transparent 0 21px, var(--ruled) 21px 22px); background-position: 0 40px; box-shadow: 0 6px 12px rgba(0,0,0,.3); transform: rotate(.8deg); }
+[data-skin="corkboard"] .issue:nth-of-type(even) { transform: rotate(-.9deg); }
+[data-skin="corkboard"] .issue.error { border-top-color: var(--error); background-color: #ffe8e6; } [data-skin="corkboard"] .issue.warning { border-top-color: #d99b16; background-color: #fff6d6; }
+[data-skin="corkboard"] .issue::before { content: ""; position: absolute; top: -9px; left: 22px; width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #8fc3ff, #2f6fb0 55%, #163b63); box-shadow: 1px 3px 3px rgba(0,0,0,.4); }
+[data-skin="corkboard"] .issue.error::before { background: radial-gradient(circle at 35% 35%, #ff8a80, #c42f2a 55%, #7d1612); }
+[data-skin="corkboard"] .issue.warning::before { background: radial-gradient(circle at 35% 35%, #ffe08a, #e0a800 55%, #8a6200); }
+[data-skin="corkboard"] .issue .stripe { display: none; }
+[data-skin="corkboard"] .issue .title { font-family: var(--f-hand); font-size: 18px; line-height: 1.2; }
+[data-skin="corkboard"] .issue blockquote { font-family: var(--f-book); font-style: normal; }
+[data-skin="corkboard"] .btn { background: var(--surface); border: 1.5px solid #3d2511; border-radius: 3px; box-shadow: 2px 2px 0 #3d2511; }
+[data-skin="corkboard"] .btn:active { transform: translate(2px, 2px); box-shadow: none; }
+[data-skin="corkboard"] .btn.primary { background: var(--accent); border-color: #3d2511; color: #fff; }
+[data-skin="corkboard"] .panel-body > .type-row .type-chip { box-shadow: 0 3px 5px rgba(0,0,0,.2); }
+[data-skin="corkboard"] .trait { border-radius: 1px; border-left: 3px solid var(--line); }
+[data-skin="corkboard"] .summary { font-family: var(--f-book); font-size: 14px; }
+[data-skin="corkboard"] .dossier-name { font-family: var(--f-hand); font-weight: 700; }
+[data-skin="corkboard"] .media-card { border-radius: 2px; border-style: dashed; }
+[data-skin="corkboard"] .media-body textarea { font-family: var(--f-book); background: var(--surface) repeating-linear-gradient(transparent 0 20px, var(--ruled) 20px 21px); background-attachment: local; line-height: 21px; }
+[data-skin="corkboard"] .detail-list span { position: relative; background: var(--kraft); color: #3d2511; border-radius: 2px 9px 9px 2px; padding: 2px 9px 2px 15px; font-family: var(--f-hand); font-size: 13px; box-shadow: 0 2px 3px rgba(0,0,0,.18); }
+[data-skin="corkboard"] .detail-list span::before { content: ""; position: absolute; left: 5px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--surface); box-shadow: inset 0 0 0 1px #b39b6c; }
+[data-skin="corkboard"] .scene-media { float: right; flex-direction: column; flex-wrap: nowrap; width: 166px; margin: -4px -48px 18px 24px; gap: 14px; }
+[data-skin="corkboard"] .sm-item { width: 166px; background: #fff; padding: 8px 8px 8px; box-shadow: 0 8px 16px rgba(0,0,0,.3); transform: rotate(-3deg); }
+[data-skin="corkboard"] .sm-item:nth-child(even) { transform: rotate(2.5deg); }
+[data-skin="corkboard"] .sm-item::before { content: ""; position: absolute; top: -7px; left: 50%; width: 15px; height: 15px; margin-left: -7.5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #8fc3ff, #2f6fb0 55%, #163b63); box-shadow: 1px 3px 3px rgba(0,0,0,.4); z-index: 1; }
+[data-skin="corkboard"] .sm-item:nth-child(even)::before { background: radial-gradient(circle at 35% 35%, #9be7a5, #2e9b48 55%, #145a24); }
+[data-skin="corkboard"] .sm-photo { height: 124px; border: none; border-radius: 0; }
+[data-skin="corkboard"] .sm-item figcaption { font-family: var(--f-hand); font-size: 15px; color: var(--ink); text-align: center; white-space: normal; margin-top: 6px; line-height: 1.2; }
+[data-skin="corkboard"] .portrait { position: relative; overflow: visible; width: 56px; height: 64px; border-radius: 1px; border: 4px solid #fff; border-bottom-width: 12px; box-shadow: 0 4px 9px rgba(0,0,0,.3); transform: rotate(3deg); }
+[data-skin="corkboard"] .portrait img { overflow: hidden; }
+[data-skin="corkboard"] .portrait::before { content: ""; position: absolute; top: -9px; left: 50%; width: 11px; height: 11px; margin-left: -5.5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8a80, #c42f2a 55%, #7d1612); z-index: 1; }
+[data-skin="corkboard"] .media-thumb { position: relative; overflow: visible; background: #fff; padding: 5px 5px 18px; border-radius: 1px; box-shadow: 0 4px 9px rgba(0,0,0,.3); transform: rotate(1.5deg); }
+[data-skin="corkboard"] .media-thumb::before { content: ""; position: absolute; top: -6px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ff8a80, #c42f2a 55%, #7d1612); z-index: 1; }
+[data-skin="corkboard"] .badge { border-radius: 2px; }
+[data-skin="corkboard"] .banner { position: relative; background: #fff4a8; border: none; border-radius: 1px; transform: rotate(-.6deg); box-shadow: 0 8px 14px rgba(0,0,0,.25); font-family: var(--f-hand); font-size: 15px; }
+[data-skin="corkboard"] .scene-meta input { background: var(--sunk); }
+[data-skin="corkboard"] #toast { background: var(--kraft); color: var(--ink); font-family: var(--f-hand); font-size: 15px; box-shadow: 0 6px 14px rgba(0,0,0,.35); border-radius: 2px; }
+[data-skin="corkboard"] .mobile-tabs { background: var(--wood); border-bottom-color: #3d2511; }
+[data-skin="corkboard"] .mobile-tabs button { color: #e6cfae; font-family: var(--f-hand); font-size: 15px; }
+[data-skin="corkboard"] .mobile-tabs button.on { color: #fff; border-bottom-color: #f2c48a; }
+@media (max-width: 860px) {
+  [data-skin="typewriter"] .write-wrap { margin: 12px 10px 40px; padding: 30px 20px 90px; }
+  [data-skin="corkboard"] .write-wrap { margin: 18px 10px 40px; padding: 30px 16px 90px 40px; background-image: linear-gradient(90deg, transparent 26px, #eda3a3 26px, #eda3a3 28px, transparent 28px); }
+  [data-skin="corkboard"] .pane-scenes, [data-skin="corkboard"] .pane-panel { border: none; }
+}
+@media (max-width: 860px) {
+  [data-skin] .scene-media { float: none; width: auto; flex-direction: row; flex-wrap: wrap; margin: 0 0 18px; gap: 14px; }
+  [data-skin] .sm-item { width: 128px; margin-bottom: 0; }
+  [data-skin] .sm-photo { height: 96px; }
+}
+@media (prefers-reduced-motion: reduce) { [data-skin] .scene-item:hover { transform: none; } }
+</style>
+
+<div class="app" id="app" data-view="write">
+  <header class="top">
+    <div class="brand">Storyworld <span>Workbench</span></div>
+    <input id="bookTitle" aria-label="Book title" value="">
+    <div class="status" id="status">Loading…</div>
+    <div class="spacer"></div>
+    <button class="chip-btn" id="issueChip" title="Open issues"></button>
+    <label class="skin-pick"><span>Design</span>
+      <select id="skinSel" aria-label="Design">
+        <option value="classic">Desk</option>
+        <option value="typewriter">Typewriter</option>
+        <option value="corkboard">Corkboard</option>
+      </select>
+    </label>
+    <button class="chip-btn" id="marksToggle" aria-pressed="true">Marks on</button>
+    <button class="chip-btn" id="bibleBtn">Bible</button>
+    <button class="chip-btn" id="newBook">New book</button>
+  </header>
+  <nav class="mobile-tabs" id="mobileTabs">
+    <button data-v="scenes">Scenes</button><button data-v="write" class="on">Write</button><button data-v="world">World &amp; issues</button>
+  </nav>
+  <div class="main">
+    <aside class="pane pane-scenes" id="scenePane"></aside>
+    <section class="pane pane-write" id="writePane">
+      <div class="write-wrap">
+        <div id="banner"></div>
+        <div class="scene-meta" id="sceneMeta">
+          <span id="sceneCrumb" class="mono"></span>
+          <label>Story date <input type="date" id="sceneDate"></label>
+          <label>When <input type="text" id="sceneNote" placeholder="e.g. a few weeks after the Flood"></label>
+          <span class="time-hint" id="timeHint"></span>
+        </div>
+        <input id="sceneTitle" aria-label="Scene title" placeholder="Scene title">
+        <p class="mark-hint">Select text, then press <kbd>Mark</kbd> or <kbd>Ctrl</kbd>+<kbd>M</kbd> to tie it to a person, place, time, object, group or rule.</p>
+        <div id="sceneMedia" class="scene-media" hidden></div>
+        <div id="editor" contenteditable="true" spellcheck="true" aria-label="Scene text"></div>
+      </div>
+    </section>
+    <aside class="pane pane-panel" id="panelPane">
+      <div class="tabs" id="tabs" role="tablist">
+        <button class="tab" data-tab="scene">This scene</button>
+        <button class="tab" data-tab="elements">Story elements</button>
+        <button class="tab" data-tab="issues">Issues</button>
+        <button class="tab" data-tab="ask">Ask</button>
+      </div>
+      <div class="panel-body" id="panel"></div>
+    </aside>
+  </div>
+</div>
+<button id="markBtn" hidden>Mark</button>
+<div class="pop" id="pop" hidden></div>
+<div id="toast" hidden></div>
+<div class="bible-wrap" id="bibleWrap" hidden role="dialog" aria-label="Series bible">
+  <div class="bible-bar">
+    <b>Series bible</b><span class="small muted" id="bibleState"></span><span class="spacer"></span>
+    <label class="check" style="margin:0"><input type="checkbox" id="bibleFull"> Include full manuscript</label>
+    <button class="btn" id="biblePrep">Prepare with Claude</button>
+    <button class="btn" id="bibleMd">Export Markdown</button>
+    <button class="btn primary" id="bibleHtml">Export HTML</button>
+    <button class="btn" id="bibleClose">Close</button>
+  </div>
+  <div class="bible-scroll"><div id="biblePage"></div></div>
+</div>
+<div id="confirmHost"></div>
+<input type="file" id="fileIn" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+
+<script>
+(() => {
+'use strict';
+/* ---------- constants ---------- */
+const TYPES = {
+  person: { label: 'Person' }, place: { label: 'Place' }, time: { label: 'Time' },
+  object: { label: 'Object' }, group: { label: 'Group' }, rule: { label: 'Rule' },
+};
+const KINDS = { hard: 'Hard', soft: 'Soft', knowledge: 'Knowledge' };
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const newId = p => p + Math.random().toString(36).slice(2, 9);
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const fmtDate = d => { if (!d) return ''; const [y, m, dd] = d.split('-').map(Number); return `${dd} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].at(m - 1)} ${y}`; };
+
+/* ---------- sample story ---------- */
+function sampleStory() {
+  const mk = (id, t) => `<span class="mk" data-el="${id}">${t}</span>`;
+  const ch1 = 'c1', ch2 = 'c2';
+  const scenes = {
+    s1: { id: 's1', chapterId: ch1, title: 'The cliffs', date: '1921-03-02', note: 'Ten days before the Flood',
+      html: `<p>${mk('e_mara', 'Mara')} never went near ${mk('e_cliffs', 'the cliffs')}; heights turned her legs to water. From the harbour she could see ${mk('e_lh', 'the lighthouse')}, white against the rain.</p><p>Her brother ${mk('e_jon', 'Jon')} was leaving for ${mk('e_vienna', 'Vienna')} in the morning, and he had promised to write every week.</p>` },
+    s2: { id: 's2', chapterId: ch1, title: 'The Flood', date: '1921-03-12', note: '',
+      html: `<p>When ${mk('e_flood', 'the Flood')} came, the sea took the lower town in a single night. Afterwards the harbour master had the door of ${mk('e_lh', 'the lighthouse')} bricked up, so that no one would try the stairs again.</p><p>${mk('e_mara', 'Mara')} watched from the church steps. She had kept ${mk('e_key', 'the brass key')} anyway.</p>` },
+    s3: { id: 's3', chapterId: ch2, title: 'Letters from Vienna', date: '1921-04-03', note: '',
+      html: `<p>In ${mk('e_vienna', 'Vienna')}, ${mk('e_jon', 'Jon')} sat in a cold room above a bakery and wrote to his sister for the third time that week. The trams rang below the window all night.</p>` },
+    s4: { id: 's4', chapterId: ch2, title: 'The lamp room', date: '1921-04-03', note: 'Night of the storm',
+      html: `<p>On the night of the storm, ${mk('e_mara', 'Mara')} slipped inside ${mk('e_lh', 'the lighthouse')} and ran up the stairs to the lamp room. ${mk('e_jon', 'Jon')} was beside her, holding the lantern.</p><p>Below them the water rose over the rocks. Mara thought of the Flood and did not look down.</p>` },
+  };
+  const world = {
+    elements: [
+      { id: 'e_mara', type: 'person', name: 'Mara', aliases: ['Mara Lind'], notes: "The lighthouse keeper's daughter, 19 in 1921.",
+        traits: [
+          { id: 't1', name: 'Fear of heights', kind: 'soft', words: ['climb', 'climbed', 'climbing', 'ran up', 'stairs', 'ladder', 'tower', 'roof'], absent: false, from: '', until: '' },
+          { id: 't2', name: "Can't swim", kind: 'hard', words: ['swim', 'swam', 'swimming', 'dived'], absent: false, from: '', until: '' },
+        ] },
+      { id: 'e_jon', type: 'person', name: 'Jon', aliases: [], notes: "Mara's older brother.", traits: [] },
+      { id: 'e_lh', type: 'place', name: 'Lighthouse', aliases: ['the lighthouse'], notes: 'On the north rocks, reached by a causeway.',
+        traits: [ { id: 't3', name: 'Sealed: door bricked up', kind: 'hard', words: [], absent: true, from: 's2', until: '' } ] },
+      { id: 'e_cliffs', type: 'place', name: 'The cliffs', aliases: [], notes: '', traits: [] },
+      { id: 'e_vienna', type: 'place', name: 'Vienna', aliases: [], notes: 'Two days from the coast by train.',
+        traits: [ { id: 't4', name: 'Far away: two days by train', kind: 'soft', words: [], absent: false, from: '', until: '' } ] },
+      { id: 'e_flood', type: 'time', name: 'The Flood', aliases: [], notes: 'Night of 12 March 1921.', traits: [] },
+      { id: 'e_key', type: 'object', name: 'Brass key', aliases: ['the brass key'], notes: 'Opens the old lighthouse door.', traits: [] },
+    ],
+    links: [
+      { id: 'l1', a: 'e_mara', rel: 'sister of', b: 'e_jon', during: '' },
+      { id: 'l2', a: 'e_jon', rel: 'moves to', b: 'e_vienna', during: '' },
+      { id: 'l3', a: 'e_lh', rel: 'sealed after', b: 'e_flood', during: '' },
+      { id: 'l4', a: 'e_mara', rel: 'keeps', b: 'e_key', during: 'e_flood' },
+    ],
+    dismissed: {},
+  };
+  return {
+    book: { title: 'The Lamp Room', chapters: [{ id: ch1, title: 'Before' }, { id: ch2, title: 'After' }], sceneOrder: ['s1', 's2', 's3', 's4'] },
+    scenes, world,
+  };
+}
+function blankStory() {
+  const c = newId('c'), s = newId('s');
+  return {
+    book: { title: 'Untitled novel', chapters: [{ id: c, title: 'Chapter one' }], sceneOrder: [s] },
+    scenes: { [s]: { id: s, chapterId: c, title: 'Opening', date: '', note: '', html: '' } },
+    world: { elements: [], links: [], dismissed: {} },
+  };
+}
+
+/* ---------- state ---------- */
+let S = null;               // {book, scenes, world}
+let cur = null;             // current scene id
+let ui = { tab: 'issues', dossier: null, adding: null, filter: '', askText: '', askAnswer: '', askBusy: false };
+let isDemo = false;
+
+/* ---------- storage ---------- */
+const store = { mode: 'memory', db: null, uid: null, queues: {}, timers: {} };
+function setStatus(t) { $('#status').textContent = t; }
+async function withTimeout(p, ms) { let t; return Promise.race([p, new Promise(r => { t = setTimeout(() => r(null), ms); })]).finally(() => clearTimeout(t)); }
+
+async function initStore() {
+  try {
+    if (window.claude && typeof window.claude.use === 'function') {
+      const db = await withTimeout(window.claude.use('db'), 10000);
+      const user = db ? await withTimeout(window.claude.use('user'), 10000) : null;
+      const uid = user ? await user.id() : null;
+      if (db && uid) { store.mode = 'db'; store.db = db; store.uid = uid; return; }
+    }
+  } catch (e) { /* fall through */ }
+  store.mode = 'local';
+}
+const novelPath = () => `data/users/${store.uid}/novel`;
+const scenePath = id => `data/users/${store.uid}/novel/scenes/${id}`;
+
+async function loadData() {
+  if (store.mode === 'db') {
+    try {
+      const snap = await store.db.doc(novelPath()).get();
+      if (snap.exists) {
+        const d = snap.data();
+        const qs = await store.db.collection(`data/users/${store.uid}/novel/scenes`).get();
+        const scenes = {};
+        qs.docs.forEach(x => { const v = x.data(); if (v && v.id) scenes[v.id] = { ...v }; });
+        return { book: structuredClone(d.book), world: structuredClone(d.world), scenes };
+      }
+      return null;
+    } catch (e) { toast("Couldn't load your book. Showing the sample story."); return null; }
+  }
+  try { const raw = localStorage.getItem('storyworld.v1'); if (raw) return JSON.parse(raw); } catch (e) {}
+  return null;
+}
+
+function enqueue(key, fn) {
+  const prev = store.queues[key] || Promise.resolve();
+  const next = prev.then(fn).then(() => { if (!pendingWrites()) setStatus(savedLabel()); })
+    .catch(e => setStatus("Couldn't save: " + (e && e.message ? e.message : 'unknown error')));
+  store.queues[key] = next;
+  return next;
+}
+function pendingWrites() { return Object.keys(store.timers).length > 0; }
+function savedLabel() { return store.mode === 'db' ? 'Saved' : 'Saved in this browser only'; }
+
+function schedule(key, fn, ms = 900) {
+  if (isDemo) { adoptDemo(); return; }
+  setStatus('Saving…');
+  clearTimeout(store.timers[key]);
+  store.timers[key] = setTimeout(() => { delete store.timers[key]; enqueue(key, fn); }, ms);
+}
+function persistNovel() {
+  schedule('novel', async () => {
+    if (store.mode === 'db') await store.db.doc(novelPath()).set({ v: 1, book: S.book, world: S.world });
+    else saveLocal();
+  });
+}
+function persistScene(id) {
+  schedule('scene:' + id, async () => {
+    const sc = S.scenes[id]; if (!sc) return;
+    if (store.mode === 'db') await store.db.doc(scenePath(id)).set(sc);
+    else saveLocal();
+  });
+}
+function removeScene(id) {
+  if (isDemo) return;
+  enqueue('scene:' + id, async () => { if (store.mode === 'db') await store.db.doc(scenePath(id)).delete(); else saveLocal(); });
+}
+function saveLocal() { try { localStorage.setItem('storyworld.v1', JSON.stringify(S)); } catch (e) { setStatus("Couldn't save in this browser"); } }
+async function persistAll(oldSceneIds = []) {
+  setStatus('Saving…');
+  if (store.mode === 'db') {
+    await enqueue('novel', () => store.db.doc(novelPath()).set({ v: 1, book: S.book, world: S.world }));
+    for (const id of Object.keys(S.scenes)) await enqueue('scene:' + id, () => store.db.doc(scenePath(id)).set(S.scenes[id]));
+    for (const id of oldSceneIds) if (!S.scenes[id]) await enqueue('scene:' + id, () => store.db.doc(scenePath(id)).delete());
+  } else { saveLocal(); setStatus(savedLabel()); }
+}
+function adoptDemo() {
+  isDemo = false; renderBanner();
+  if (store.mode === 'memory') return; // still connecting; boot saves it
+  persistAll().then(() => toast('Your copy of the sample is saved. Keep editing.'));
+}
+
+/* ---------- html cleaning ---------- */
+function cleanHTML(html) {
+  const src = document.createElement('div'); src.innerHTML = html || '';
+  const out = document.createElement('div');
+  const walk = (from, to) => {
+    for (const n of [...from.childNodes]) {
+      if (n.nodeType === 3) { to.appendChild(document.createTextNode(n.data)); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName;
+      if (tag === 'P' || tag === 'DIV') {
+        if (to === out) { const p = document.createElement('p'); walk(n, p); if (p.textContent.trim() || p.querySelector('br')) out.appendChild(p); }
+        else { walk(n, to); }
+      } else if (tag === 'BR') { to.appendChild(document.createElement('br')); }
+      else if (tag === 'SPAN' && n.classList.contains('mk') && n.dataset.el) {
+        const s = document.createElement('span'); s.className = 'mk'; s.dataset.el = n.dataset.el; walk(n, s); if (s.textContent) to.appendChild(s);
+      } else if (['B', 'STRONG', 'I', 'EM'].includes(tag)) { const e = document.createElement(tag.toLowerCase()); walk(n, e); to.appendChild(e); }
+      else walk(n, to);
+    }
+  };
+  walk(src, out);
+  // wrap stray top-level inline content into paragraphs
+  const final = document.createElement('div'); let p = null;
+  for (const n of [...out.childNodes]) {
+    if (n.nodeType === 1 && n.tagName === 'P') { p = null; final.appendChild(n); }
+    else { if (!p) { p = document.createElement('p'); final.appendChild(p); } p.appendChild(n); }
+  }
+  [...final.querySelectorAll('p')].forEach(x => { if (!x.textContent.trim() && !x.querySelector('br')) x.remove(); });
+  return final.innerHTML;
+}
+
+/* ---------- analysis ---------- */
+const elById = id => S.world.elements.find(e => e.id === id);
+function sceneList() { return S.book.sceneOrder.map(id => S.scenes[id]).filter(Boolean); }
+function sceneLabel(id) {
+  const sc = S.scenes[id]; if (!sc) return 'Unknown scene';
+  const ci = S.book.chapters.findIndex(c => c.id === sc.chapterId);
+  return `Ch ${ci + 1} · ${sc.title || 'Untitled'}`;
+}
+function storyKeys() {
+  const keys = {}; let last = '';
+  sceneList().forEach((sc, i) => { if (sc.date) { last = sc.date; keys[sc.id] = { key: sc.date, approx: false, idx: i }; } else keys[sc.id] = { key: last, approx: true, idx: i }; });
+  return keys;
+}
+function cmpScenes(a, b, K) {
+  const A = K[a], B = K[b]; if (!A || !B) return 0;
+  if (A.key && B.key && A.key !== B.key) return A.key < B.key ? -1 : 1;
+  return A.idx - B.idx;
+}
+function inWindow(t, sid, K) {
+  if (t.from && S.scenes[t.from] && cmpScenes(sid, t.from, K) <= 0) return false;
+  if (t.until && S.scenes[t.until] && cmpScenes(sid, t.until, K) > 0) return false;
+  return true;
+}
+const anaCache = new Map();
+function analyze(sc) {
+  const hit = anaCache.get(sc.id); if (hit && hit.html === sc.html) return hit.a;
+  const div = document.createElement('div'); div.innerHTML = sc.html || '';
+  let paras = [...div.querySelectorAll('p')]; if (!paras.length) paras = [div];
+  const a = { paras: [], present: new Set(), words: 0 };
+  paras.forEach(p => {
+    const ids = new Set();
+    p.querySelectorAll('.mk').forEach(s => s.dataset.el.split(',').forEach(x => { ids.add(x); a.present.add(x); }));
+    const clone = p.cloneNode(true); clone.querySelectorAll('.mk').forEach(s => s.replaceWith(document.createTextNode(' ¦ ')));
+    const text = p.textContent;
+    a.words += (text.match(/\S+/g) || []).length;
+    a.paras.push({ text, html: p.innerHTML, ids, unmarked: clone.textContent });
+  });
+  anaCache.set(sc.id, { html: sc.html, a });
+  return a;
+}
+function termsFor(el) { return [el.name, ...(el.aliases || [])].map(s => (s || '').trim()).filter(s => s.length >= 3); }
+function termRegex(terms) {
+  if (!terms.length) return null;
+  const alt = [...terms].sort((a, b) => b.length - a.length).map(reEsc).join('|');
+  return new RegExp(`(?<![\\p{L}\\p{N}])(?:${alt})(?![\\p{L}\\p{N}])`, 'iu');
+}
+function wordRegex(w) { return new RegExp(`(?<![\\p{L}\\p{N}])${reEsc(w.trim())}(?![\\p{L}\\p{N}])`, 'iu'); }
+
+/* ---------- rule engine ---------- */
+function hashKey(k) { let h = 5381; for (let i = 0; i < k.length; i++) h = ((h << 5) + h + k.charCodeAt(i)) | 0; return 'i' + (h >>> 0).toString(36); }
+function computeIssues() {
+  const out = []; const K = storyKeys(); const scenes = sceneList();
+  const A = {}; scenes.forEach(sc => { A[sc.id] = analyze(sc); });
+  const add = o => { o.id = hashKey(o.key); if (!S.world.dismissed[o.id]) out.push(o); };
+
+  for (const el of S.world.elements) {
+    for (const t of el.traits || []) {
+      for (const sc of scenes) {
+        const a = A[sc.id]; if (!a.present.has(el.id) || !inWindow(t, sc.id, K)) continue;
+        const sev = t.kind === 'hard' ? 'error' : 'warning';
+        if (t.absent) {
+          const paras = a.paras.filter(p => p.ids.has(el.id) && (el.type !== 'place' || [...p.ids].some(x => elById(x)?.type === 'person')));
+          if (paras.length) {
+            const who = el.type === 'place' ? [...paras[0].ids].map(elById).filter(e => e && e.type === 'person').map(e => e.name) : [];
+            add({ key: `absent:${t.id}:${sc.id}`, sev, src: 'rules', scene: sc.id, els: [el.id, ...paras[0].ids], quote: paras[0].text,
+              title: el.type === 'place' ? `${who.join(' and ') || 'Someone'} at ${el.name}, which is “${t.name}”` : `${el.name} appears while “${t.name}”`,
+              detail: `${KINDS[t.kind]} trait on ${el.name}${t.from ? ', in force after ' + sceneLabel(t.from) : ''}. ${t.kind === 'hard' ? 'Explain how this is possible, or change the scene.' : 'Make it a story beat, or adjust the scene.'}` });
+          }
+        }
+        for (const w of t.words || []) {
+          if (!w.trim()) continue; const re = wordRegex(w);
+          const p = a.paras.find(p => p.ids.has(el.id) && re.test(p.text));
+          if (p) {
+            const m = p.text.match(re);
+            add({ key: `word:${t.id}:${sc.id}`, sev: t.kind === 'hard' ? 'error' : t.kind === 'knowledge' ? 'warning' : 'warning', src: 'rules', scene: sc.id, els: [el.id], quote: p.text,
+              title: t.kind === 'soft' ? `${el.name}'s “${t.name}” isn't felt here` : t.kind === 'knowledge' ? `${el.name} may know too much: “${t.name}”` : `${el.name} breaks “${t.name}”`,
+              detail: `The passage says “${m[0]}” near ${el.name}. ${t.kind === 'soft' ? 'A soft trait can be overcome, but the reader should see the cost.' : t.kind === 'knowledge' ? 'Check when they learned this.' : 'A hard trait needs an explanation in the text.'}` });
+            break;
+          }
+        }
+      }
+    }
+  }
+  // two places at once (exact dates only)
+  const persons = S.world.elements.filter(e => e.type === 'person');
+  for (const p of persons) {
+    const appearances = scenes.filter(sc => !K[sc.id].approx && A[sc.id].present.has(p.id))
+      .map(sc => ({ sc, places: [...A[sc.id].present].map(elById).filter(e => e && e.type === 'place').map(e => e.id) }))
+      .filter(x => x.places.length);
+    for (let i = 0; i < appearances.length; i++) for (let j = i + 1; j < appearances.length; j++) {
+      const x = appearances[i], y = appearances[j];
+      if (x.sc.date !== y.sc.date) continue;
+      if (x.places.some(pl => y.places.includes(pl))) continue;
+      const pa = elById(x.places[0]).name, pb = elById(y.places[0]).name;
+      add({ key: `two:${p.id}:${x.sc.id}:${y.sc.id}`, sev: 'error', src: 'rules', scene: y.sc.id, els: [p.id, x.places[0], y.places[0]],
+        title: `${p.name} is in two places on ${fmtDate(x.sc.date)}`,
+        detail: `${sceneLabel(x.sc.id)} puts ${p.name} in ${pa}; ${sceneLabel(y.sc.id)} puts them at ${pb}, on the same story date. Change a date, or explain the journey.` });
+    }
+  }
+  // unmarked mentions
+  for (const sc of scenes) {
+    const a = A[sc.id];
+    for (const el of S.world.elements) {
+      const re = termRegex(termsFor(el)); if (!re) continue;
+      const n = a.paras.reduce((acc, p) => acc + (p.unmarked.match(new RegExp(re.source, 'giu')) || []).length, 0);
+      if (n) add({ key: `unmarked:${el.id}:${sc.id}`, sev: 'idea', src: 'rules', scene: sc.id, els: [el.id], action: 'markall',
+        title: `${el.name} is mentioned ${n === 1 ? 'once' : n + ' times'} without a mark`,
+        detail: 'Marked mentions feed the dossier and the continuity checks.' });
+    }
+  }
+  // planned canon
+  const marked = new Set(); scenes.forEach(sc => A[sc.id].present.forEach(x => marked.add(x)));
+  for (const el of S.world.elements) {
+    if (!marked.has(el.id) && ((el.traits || []).length || el.notes)) add({ key: `planned:${el.id}`, sev: 'idea', src: 'rules', els: [el.id],
+      title: `${el.name} exists only in your notes`, detail: 'Planned canon: nothing in the manuscript establishes it yet.' });
+  }
+  // AI issues
+  for (const sc of scenes) for (const ai of (sc.ai?.issues || [])) {
+    const key = `ai:${sc.id}:${ai.title}`.slice(0, 160);
+    add({ key, sev: ['error', 'warning', 'idea'].includes(ai.severity) ? ai.severity : 'idea', src: 'ai', scene: sc.id, els: [], title: ai.title, detail: ai.detail, quote: ai.quote });
+  }
+  const rank = { error: 0, warning: 1, idea: 2 };
+  out.sort((a, b) => rank[a.sev] - rank[b.sev]);
+  return out;
+}
+let ISSUES = [];
+let issueTimer = null;
+function refreshIssues(now) {
+  clearTimeout(issueTimer);
+  const run = () => { ISSUES = computeIssues(); renderIssueChip(); renderScenes(); if (['issues', 'scene'].includes(ui.tab) && !panelBusy()) renderPanel(); };
+  if (now) run(); else issueTimer = setTimeout(run, 500);
+}
+function panelBusy() { const a = document.activeElement; return a && $('#panel').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName); }
+
+/* ---------- rendering: header / scenes ---------- */
+function renderIssueChip() {
+  const c = { error: 0, warning: 0, idea: 0 }; ISSUES.forEach(i => c[i.sev]++);
+  $('#issueChip').innerHTML = `<span class="sev-count"><span class="dot" style="background:var(--error)"></span>${c.error}</span><span class="sev-count"><span class="dot" style="background:var(--warning)"></span>${c.warning}</span><span class="sev-count"><span class="dot" style="background:var(--idea)"></span>${c.idea}</span>`;
+  $('#issueChip').setAttribute('aria-label', `${c.error} errors, ${c.warning} warnings, ${c.idea} ideas`);
+}
+function renderScenes() {
+  const K = storyKeys(); const sev = {}; ISSUES.forEach(i => { if (i.scene && i.sev !== 'idea') sev[i.scene] = sev[i.scene] === 'error' ? 'error' : i.sev; });
+  let h = `<div class="side-label">Manuscript</div>`;
+  S.book.chapters.forEach((c, ci) => {
+    h += `<div class="chapter"><div class="chapter-head"><span class="muted mono small">${ci + 1}</span><input data-ch="${c.id}" value="${esc(c.title)}" aria-label="Chapter title"></div>`;
+    S.book.sceneOrder.filter(id => S.scenes[id]?.chapterId === c.id).forEach(id => {
+      const sc = S.scenes[id]; const k = K[id];
+      const when = sc.date ? fmtDate(sc.date) : (k.key ? `≈ after ${fmtDate(k.key)}` : 'No date');
+      h += `<button class="scene-item ${id === cur ? 'active' : ''}" data-scene="${id}"><span class="t">${esc(sc.title || 'Untitled')}</span><span class="d mono">${esc(when)}</span><span class="flags">${(() => { const n = (S.world.media || []).filter(m => m.sceneId === id).length; return n ? `<span class="img-count" title="${n} image${n === 1 ? '' : 's'}">${IMG_ICON}${n}</span>` : ''; })()}${sev[id] ? `<span class="dot" style="background:var(--${sev[id]})" title="${sev[id] === 'error' ? 'Has errors' : 'Has warnings'}"></span>` : ''}</span></button>`;
+    });
+    h += `<button class="add-link" data-addscene="${c.id}">+ Scene</button></div>`;
+  });
+  h += `<button class="add-link" id="addChapter">+ Chapter</button>`;
+  const words = sceneList().reduce((n, sc) => n + analyze(sc).words, 0);
+  h += `<p class="small muted mono" style="margin:18px 6px 0">${words.toLocaleString()} words · ${S.world.elements.length} story elements</p>`;
+  $('#scenePane').innerHTML = h;
+}
+function renderBanner() {
+  $('#banner').innerHTML = isDemo ? `<div class="banner"><span><b>Sample story.</b> It already contains a few continuity problems. Open Issues to see them. Edits save a copy for you.</span><span class="spacer"></span><button class="btn" id="startBlank">Start a blank book</button></div>` : '';
+}
+
+/* ---------- editor ---------- */
+function openScene(id) {
+  flushEditor();
+  cur = id; const sc = S.scenes[id];
+  $('#editor').innerHTML = sc.html || '';
+  $('#sceneTitle').value = sc.title || '';
+  $('#sceneDate').value = sc.date || '';
+  $('#sceneNote').value = sc.note || '';
+  updateTimeHint(); paintMarks($('#editor'));
+  renderScenes(); renderPanel();
+  if (isMobile()) setView('write');
+}
+function updateTimeHint() {
+  const sc = S.scenes[cur]; const K = storyKeys(); const k = K[cur];
+  $('#sceneCrumb').textContent = sceneLabel(cur).split(' · ')[0];
+  $('#timeHint').textContent = sc.date ? '' : (k.key ? `Placed after ${fmtDate(k.key)}; checks treat it as approximate` : 'No date yet; checks use reading order');
+}
+function paintMarks(root) {
+  root.querySelectorAll('.mk').forEach(s => {
+    const ids = s.dataset.el.split(',').filter(x => elById(x));
+    if (!ids.length) { s.replaceWith(...s.childNodes); return; }
+    s.dataset.el = ids.join(',');
+    const first = elById(ids[0]);
+    s.className = `mk t-${first.type}${ids.length > 1 ? ' multi' : ''}`;
+    s.title = ids.map(x => `${elById(x).name} (${TYPES[elById(x).type].label})`).join(' + ');
+  });
+}
+function syncEditor() {
+  if (!cur) return;
+  const html = cleanHTML($('#editor').innerHTML.replace(/ title="[^"]*"/g, '').replace(/ class="mk[^"]*"/g, ' class="mk"'));
+  if (S.scenes[cur].html !== html) { S.scenes[cur].html = html; persistScene(cur); refreshIssues(); }
+}
+let syncTimer = null;
+function flushEditor() { if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; syncEditor(); } }
+document.execCommand('defaultParagraphSeparator', false, 'p');
+$('#editor').addEventListener('input', () => { clearTimeout(syncTimer); syncTimer = setTimeout(() => { syncTimer = null; syncEditor(); }, 400); });
+$('#editor').addEventListener('paste', e => { e.preventDefault(); const t = (e.clipboardData || window.clipboardData).getData('text/plain'); document.execCommand('insertText', false, t); });
+$('#editor').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') { e.preventDefault(); openMarkPop(); }
+});
+$('#sceneTitle').addEventListener('input', e => { S.scenes[cur].title = e.target.value; persistScene(cur); renderScenes(); });
+$('#sceneDate').addEventListener('change', e => { S.scenes[cur].date = e.target.value; persistScene(cur); updateTimeHint(); refreshIssues(true); });
+$('#sceneNote').addEventListener('input', e => { S.scenes[cur].note = e.target.value; persistScene(cur); });
+$('#bookTitle').addEventListener('input', e => { S.book.title = e.target.value; persistNovel(); });
+
+/* selection → mark button */
+let savedRange = null;
+function selectionInEditor() {
+  const sel = window.getSelection(); if (!sel.rangeCount) return null;
+  const r = sel.getRangeAt(0); if (r.collapsed) return null;
+  if (!$('#editor').contains(r.commonAncestorContainer)) return null;
+  return r;
+}
+function updateMarkBtn() {
+  const r = selectionInEditor(); const b = $('#markBtn');
+  if (!r || !$('#pop').hidden) { b.hidden = true; return; }
+  const rect = r.getBoundingClientRect();
+  b.hidden = false;
+  b.style.left = Math.max(8, Math.min(window.innerWidth - 80, rect.left + rect.width / 2 - 30)) + 'px';
+  b.style.top = Math.max(8, rect.top - 40) + 'px';
+}
+document.addEventListener('selectionchange', () => requestAnimationFrame(updateMarkBtn));
+$('#writePane').addEventListener('scroll', () => { $('#markBtn').hidden = true; });
+$('#markBtn').addEventListener('mousedown', e => e.preventDefault());
+$('#markBtn').addEventListener('click', () => openMarkPop());
+
+function openMarkPop() {
+  const r = selectionInEditor(); if (!r) { toast('Select some text in the scene first.'); return; }
+  const pa = r.startContainer.parentElement?.closest('p'), pb = r.endContainer.parentElement?.closest('p');
+  const sp = n => n.nodeType === 1 ? n.closest('p') : n.parentElement?.closest('p');
+  if (sp(r.startContainer) !== sp(r.endContainer)) { toast('Marks stay inside one paragraph. Select less text.'); return; }
+  savedRange = r.cloneRange();
+  const text = r.toString().trim().replace(/\s+/g, ' ');
+  const rect = r.getBoundingClientRect();
+  const pop = $('#pop'); pop.hidden = false; $('#markBtn').hidden = true;
+  pop.innerHTML = `<input id="popQ" value="${esc(text)}" aria-label="Find or create a story element"><div class="opts" id="popOpts"></div><div class="create">Create “<span id="popNew"></span>” as<div class="type-row">${Object.entries(TYPES).map(([k, v]) => `<button class="type-chip t-${k}" data-create="${k}"><span class="tdot"></span>${v.label}</button>`).join('')}</div></div>`;
+  const place = () => {
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    let left = Math.min(window.innerWidth - w - 16, Math.max(16, rect.left));
+    let y = rect.bottom + 8; if (y + h > window.innerHeight - 16) y = Math.max(16, rect.top - h - 8);
+    pop.style.left = left + 'px'; pop.style.top = y + 'px';
+  };
+  const fill = () => {
+    const q = $('#popQ').value.trim().toLowerCase();
+    $('#popNew').textContent = $('#popQ').value.trim() || '…';
+    const list = S.world.elements.filter(e => !q || [e.name, ...(e.aliases || [])].some(n => n.toLowerCase().includes(q) || q.includes(n.toLowerCase())))
+      .slice(0, 8);
+    $('#popOpts').innerHTML = list.length ? list.map((e, i) => `<button class="opt t-${e.type} ${i === 0 ? 'sel' : ''}" data-pick="${e.id}"><span class="tdot"></span>${esc(e.name)}<small>${TYPES[e.type].label}</small></button>`).join('')
+      : `<div class="small muted" style="padding:4px 8px">No matching story element. Create one below.</div>`;
+  };
+  fill(); place();
+  const q = $('#popQ'); q.focus(); q.select();
+  q.addEventListener('input', () => { fill(); });
+  q.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closePop(); }
+    if (e.key === 'Enter') { e.preventDefault(); const f = $('#popOpts [data-pick]'); if (f) applyMark(f.dataset.pick); else createAndMark('person'); }
+  });
+}
+function closePop() { $('#pop').hidden = true; savedRange = null; }
+$('#pop').addEventListener('click', e => {
+  const p = e.target.closest('[data-pick]'); if (p) { applyMark(p.dataset.pick); return; }
+  const c = e.target.closest('[data-create]'); if (c) { createAndMark(c.dataset.create); return; }
+  const o = e.target.closest('[data-open]'); if (o) { closePop(); openDossier(o.dataset.open); return; }
+  const u = e.target.closest('[data-unmark]'); if (u) { unmarkSpan(u.dataset.unmark); return; }
+});
+document.addEventListener('mousedown', e => { if (!$('#pop').hidden && !$('#pop').contains(e.target)) closePop(); });
+function createAndMark(type) {
+  const name = ($('#popQ').value || '').trim(); if (!name) { toast('Type a name first.'); return; }
+  const el = { id: newId('e_'), type, name, aliases: [], notes: '', traits: [] };
+  S.world.elements.push(el); persistNovel();
+  applyMark(el.id); toast(`Created ${TYPES[type].label.toLowerCase()} “${name}”.`);
+}
+function applyMark(elId) {
+  const r = savedRange; closePop(); if (!r) return;
+  const host = (r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement).closest('.mk');
+  if (host && host.textContent.trim() === r.toString().trim()) {
+    const ids = new Set(host.dataset.el.split(',')); ids.add(elId); host.dataset.el = [...ids].join(',');
+  } else {
+    const span = document.createElement('span'); span.className = 'mk'; span.dataset.el = elId;
+    span.appendChild(r.extractContents()); r.insertNode(span);
+    span.querySelectorAll('.mk').forEach(inner => { inner.dataset.el.split(',').forEach(x => { const s = new Set(span.dataset.el.split(',')); s.add(x); span.dataset.el = [...s].join(','); }); inner.replaceWith(...inner.childNodes); });
+  }
+  window.getSelection().removeAllRanges();
+  paintMarks($('#editor')); syncEditor(); refreshIssues(true); renderPanel();
+}
+let spanSeq = 0;
+$('#editor').addEventListener('click', e => {
+  const s = e.target.closest('.mk'); if (!s) return;
+  if (!window.getSelection().isCollapsed) return;
+  s.dataset.tmp = 'u' + (++spanSeq);
+  const rect = s.getBoundingClientRect(); const pop = $('#pop'); pop.hidden = false;
+  const ids = s.dataset.el.split(',');
+  pop.innerHTML = `<div class="small muted" style="margin-bottom:6px">“${esc(s.textContent)}” is marked as</div>${ids.map(id => { const el = elById(id); return el ? `<button class="opt t-${el.type}" data-open="${id}"><span class="tdot"></span>${esc(el.name)}<small>Open dossier</small></button>` : ''; }).join('')}<div class="btn-row" style="margin-top:8px"><button class="btn" data-unmark="${s.dataset.tmp}">Remove mark</button></div>`;
+  pop.style.left = Math.max(16, Math.min(window.innerWidth - pop.offsetWidth - 16, rect.left)) + 'px';
+  pop.style.top = Math.min(window.innerHeight - pop.offsetHeight - 16, rect.bottom + 8) + 'px';
+});
+function unmarkSpan(tmp) {
+  const s = $(`#editor .mk[data-tmp="${tmp}"]`); closePop(); if (!s) return;
+  s.replaceWith(...s.childNodes); syncEditor(); refreshIssues(true); renderPanel();
+}
+
+/* mark every unmarked mention of an element in a scene */
+function wrapMatches(root, el) {
+  const re = termRegex(termsFor(el)); if (!re) return 0;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); const nodes = [];
+  while (walker.nextNode()) { const n = walker.currentNode; if (!n.parentElement.closest('.mk')) nodes.push(n); }
+  let count = 0;
+  for (let n of nodes) {
+    let m;
+    while (n && (m = re.exec(n.data))) {
+      const mid = n.splitText(m.index); const rest = mid.splitText(m[0].length);
+      const span = document.createElement('span'); span.className = 'mk'; span.dataset.el = el.id;
+      mid.parentNode.insertBefore(span, mid); span.appendChild(mid); count++; n = rest;
+    }
+  }
+  return count;
+}
+function markAll(sceneId, elId) {
+  const el = elById(elId); if (!el) return;
+  if (sceneId === cur) { const n = wrapMatches($('#editor'), el); paintMarks($('#editor')); syncEditor(); toast(`Marked ${n} mention${n === 1 ? '' : 's'} of ${el.name}.`); }
+  else { const d = document.createElement('div'); d.innerHTML = S.scenes[sceneId].html; const n = wrapMatches(d, el); S.scenes[sceneId].html = cleanHTML(d.innerHTML); persistScene(sceneId); toast(`Marked ${n} mention${n === 1 ? '' : 's'} of ${el.name}.`); }
+  refreshIssues(true);
+}
+function flashElement(elId) {
+  $('#editor').querySelectorAll('.mk').forEach(s => { if (s.dataset.el.split(',').includes(elId)) { s.classList.remove('flash'); void s.offsetWidth; s.classList.add('flash'); } });
+}
+
+/* ---------- panel ---------- */
+function renderPanel() {
+  document.querySelectorAll('#tabs .tab').forEach(t => { t.classList.toggle('on', t.dataset.tab === ui.tab); t.setAttribute('aria-selected', t.dataset.tab === ui.tab); });
+  const it = $('#tabs [data-tab="issues"]'); it.textContent = `Issues (${ISSUES.length})`;
+  const body = $('#panel'); const st = body.scrollTop;
+  if (ui.tab === 'scene') body.innerHTML = panelScene();
+  else if (ui.tab === 'elements') body.innerHTML = ui.dossier ? panelDossier(ui.dossier) : panelElements();
+  else if (ui.tab === 'issues') body.innerHTML = panelIssues();
+  else body.innerHTML = panelAsk();
+  body.scrollTop = st;
+  renderSceneMedia();
+}
+const chip = el => `<button class="el-chip t-${el.type}" data-open="${el.id}"><span class="tdot"></span>${esc(el.name)}</button>`;
+const kindBadge = k => `<span class="badge ${k}">${KINDS[k]}</span>`;
+
+function panelScene() {
+  if (!cur) return '';
+  const sc = S.scenes[cur]; const a = analyze(sc); const K = storyKeys();
+  const present = [...a.present].map(elById).filter(Boolean);
+  let h = `<div class="sec"><h3>In this scene</h3>`;
+  if (!present.length) h += `<p class="muted small">Nothing is marked yet. Select a name in the text and press Mark.</p>`;
+  for (const [k, v] of Object.entries(TYPES)) { const xs = present.filter(e => e.type === k); if (xs.length) h += `<div class="small muted" style="margin:6px 0 4px">${v.label}</div>` + xs.map(chip).join(''); }
+  h += `</div>`;
+  const rules = []; present.forEach(e => (e.traits || []).forEach(t => { if (inWindow(t, cur, K)) rules.push({ e, t }); }));
+  h += `<div class="sec"><h3>Traits in force here</h3>` + (rules.length ? rules.map(({ e, t }) => `<div class="trait"><div class="row1">${kindBadge(t.kind)}<b>${esc(t.name)}</b></div><div class="meta">${esc(e.name)}${t.absent ? ' · cannot be present' : ''}${t.words?.length ? ' · watches: ' + esc(t.words.join(', ')) : ''}</div></div>`).join('') : `<p class="muted small">No traits apply to the elements in this scene.</p>`) + `</div>`;
+  const mine = ISSUES.filter(i => i.scene === cur);
+  h += `<div class="sec"><h3>Issues in this scene</h3>` + (mine.length ? mine.map(issueCard).join('') : `<p class="muted small">No issues found by the rules.</p>`) + `</div>`;
+  const sMedia = (S.world.media || []).filter(m => m.sceneId === cur);
+  h += `<div class="sec"><h3>Images</h3>${sMedia.map(m => mediaCard(m, null)).join('') || '<p class="muted small" style="margin-top:0">No images on this scene. Add a photo or sketch of the setting; Claude can describe it for you.</p>'}<button class="add-link" data-addmedia="scene" style="padding-left:0">+ Add image</button></div>`;
+  h += `<div class="sec"><h3>AI review</h3><p class="small muted" style="margin-top:0">Claude reads this scene against your canon and the earlier scenes, then lists contradictions and ideas.${sc.ai?.at ? ' Last run ' + new Date(sc.ai.at).toLocaleString() + '.' : ''}</p><div class="btn-row"><button class="btn primary" id="aiReview">Review this scene</button><span class="small muted" id="aiState"></span></div></div>`;
+  return h;
+}
+function panelElements() {
+  const f = ui.filter.toLowerCase();
+  const K = sceneList(); const counts = {};
+  K.forEach(sc => analyze(sc).present.forEach(x => { counts[x] = (counts[x] || 0) + 1; }));
+  let h = `<div class="btn-row" style="margin-bottom:12px"><input id="elFilter" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--sunk);border-radius:7px;padding:7px 9px;margin:0" placeholder="Filter story elements" value="${esc(ui.filter)}" aria-label="Filter story elements"><button class="btn primary" id="newEl">New</button></div>`;
+  if (ui.adding === 'element') h += `<div class="form-box" style="margin:0 0 14px"><div class="field"><span>Name</span><input id="neName" placeholder="e.g. The ferryman"></div><div class="field"><span>Type</span><select id="neType">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></div><div class="btn-row"><button class="btn primary" id="neSave">Create</button><button class="btn" data-cancel>Cancel</button></div></div>`;
+  for (const [k, v] of Object.entries(TYPES)) {
+    const xs = S.world.elements.filter(e => e.type === k && (!f || e.name.toLowerCase().includes(f)));
+    if (!xs.length) continue;
+    h += `<div class="sec"><h3>${v.label}</h3>` + xs.map(e => `<button class="el-row t-${e.type}" data-open="${e.id}"><span class="tdot"></span><span class="n">${esc(e.name)}</span><span class="c">${counts[e.id] || 0} scene${counts[e.id] === 1 ? '' : 's'} · ${(e.traits || []).length} trait${(e.traits || []).length === 1 ? '' : 's'}</span></button>`).join('') + `</div>`;
+  }
+  if (!S.world.elements.length) h += `<p class="muted">No story elements yet. Select a name in your text and press Mark, or create one here.</p>`;
+  return h;
+}
+function sceneOptions(sel, emptyLabel) {
+  return `<option value="">${emptyLabel}</option>` + sceneList().map(sc => `<option value="${sc.id}" ${sc.id === sel ? 'selected' : ''}>${esc(sceneLabel(sc.id))}</option>`).join('');
+}
+function panelDossier(id) {
+  const el = elById(id); if (!el) { ui.dossier = null; return panelElements(); }
+  let h = `<button class="add-link" data-back style="padding-left:0">← All story elements</button>`;
+  const pm = (S.world.media || []).find(m => m.elIds.includes(id) && imgSrc(m));
+  h += `<div class="dossier-head t-${el.type}">${pm ? `<button class="portrait" data-zoom="${pm.id}" aria-label="Enlarge image of ${esc(el.name)}"><img src="${esc(imgSrc(pm))}" alt="${esc(pm.caption || el.name)}"></button>` : '<span class="tdot" style="width:12px;height:12px"></span>'}<input class="dossier-name" id="dName" value="${esc(el.name)}" aria-label="Name"></div>`;
+  h += `<div class="two"><div class="field"><span>Type</span><select id="dType">${Object.entries(TYPES).map(([k, v]) => `<option value="${k}" ${k === el.type ? 'selected' : ''}>${v.label}</option>`).join('')}</select></div><div class="field"><span>Also called</span><input id="dAliases" value="${esc((el.aliases || []).join(', '))}" placeholder="comma-separated"></div></div>`;
+  h += `<div class="field"><span>Author notes · planned canon</span><textarea id="dNotes" placeholder="Facts you know but the text hasn't established yet">${esc(el.notes || '')}</textarea></div>`;
+  h += `<div class="sec"><h3>Summary from the text</h3>${el.summary ? `<div class="summary" id="dSummary">${esc(el.summary)}</div>` : `<div class="summary muted" id="dSummary">No summary yet. Claude can write one from every marked passage, citing the scenes.</div>`}<div class="btn-row" style="margin-top:8px"><button class="btn" id="dSum">${el.summary ? 'Refresh summary' : 'Summarize from text'}</button>${el.summaryAt ? `<span class="small muted">Updated ${new Date(el.summaryAt).toLocaleDateString()}</span>` : ''}</div></div>`;
+  const eMedia = (S.world.media || []).filter(m => m.elIds.includes(id));
+  h += `<div class="sec"><h3>Images</h3>${eMedia.map(m => mediaCard(m, el)).join('') || `<p class="muted small" style="margin-top:0">No images yet. Add a reference photo of ${esc(el.name)}; Claude can describe what it shows.</p>`}<button class="add-link" data-addmedia="el" style="padding-left:0">+ Add image</button></div>`;
+  h += `<div class="sec"><h3>Traits</h3>` + ((el.traits || []).map(t => `<div class="trait"><div class="row1">${kindBadge(t.kind)}<b>${esc(t.name)}</b><button class="x" data-deltrait="${t.id}" aria-label="Remove trait">✕</button></div><div class="meta">${t.absent ? 'Cannot be present · ' : ''}${t.words?.length ? 'Watches: ' + esc(t.words.join(', ')) + ' · ' : ''}${t.from ? 'After ' + esc(sceneLabel(t.from)) : 'From the start'}${t.until ? ' until ' + esc(sceneLabel(t.until)) : ''}</div></div>`).join('') || `<p class="muted small">No traits. Add limits like “can't swim”, “locked” or “doesn't know about the letter”.</p>`);
+  if (ui.adding === 'trait') h += `<div class="form-box"><div class="field"><span>Trait</span><input id="tName" placeholder="e.g. Fear of heights"></div><div class="field"><span>Kind</span><select id="tKind"><option value="hard">Hard: breaking it is an error</option><option value="soft" selected>Soft: breaking it needs a story beat</option><option value="knowledge">Knowledge: who knows what</option></select></div><div class="field"><span>Watch words (comma-separated)</span><input id="tWords" placeholder="e.g. climb, ladder, roof"></div><label class="check"><input type="checkbox" id="tAbsent"> ${el.type === 'place' ? 'Nobody can be here (locked, sealed, destroyed)' : 'Cannot appear (dead, gone, lost)'}</label><div class="two"><div class="field"><span>Applies after</span><select id="tFrom">${sceneOptions('', 'The start')}</select></div><div class="field"><span>Until</span><select id="tUntil">${sceneOptions('', 'The end')}</select></div></div><div class="btn-row"><button class="btn primary" id="tSave">Add trait</button><button class="btn" data-cancel>Cancel</button></div></div>`;
+  else h += `<button class="add-link" data-add="trait" style="padding-left:0">+ Add trait</button>`;
+  h += `</div>`;
+  const links = S.world.links.filter(l => l.a === id || l.b === id);
+  h += `<div class="sec"><h3>Links</h3>` + (links.map(l => { const A = elById(l.a), B = elById(l.b), D = elById(l.during); if (!A || !B) return ''; return `<div class="link-row">${chip(A)}<span class="rel">${esc(l.rel)}</span>${chip(B)}${D ? `<span class="rel">during</span>${chip(D)}` : ''}<button class="x" data-dellink="${l.id}" aria-label="Remove link">✕</button></div>`; }).join('') || `<p class="muted small">Not linked to anything yet.</p>`);
+  const others = S.world.elements.filter(e => e.id !== id);
+  if (ui.adding === 'link') h += `<div class="form-box"><div class="field"><span>${esc(el.name)} …</span><input id="lRel" placeholder="e.g. lives in, owes money to, was at"></div><div class="field"><span>… which element</span><select id="lB">${others.map(e => `<option value="${e.id}">${esc(e.name)} (${TYPES[e.type].label})</option>`).join('')}</select></div><div class="field"><span>During (optional time)</span><select id="lD"><option value="">Always</option>${S.world.elements.filter(e => e.type === 'time').map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select></div><div class="btn-row"><button class="btn primary" id="lSave">Add link</button><button class="btn" data-cancel>Cancel</button></div></div>`;
+  else if (others.length) h += `<button class="add-link" data-add="link" style="padding-left:0">+ Add link</button>`;
+  h += `</div>`;
+  h += `<div class="sec"><h3>Appearances</h3>`;
+  let any = false;
+  for (const sc of sceneList()) {
+    const a = analyze(sc);
+    a.paras.filter(p => p.ids.has(id)).forEach(p => {
+      any = true;
+      const d = document.createElement('div'); d.innerHTML = p.html;
+      d.querySelectorAll('.mk').forEach(s => { if (s.dataset.el.split(',').includes(id)) { const m = document.createElement('mark'); m.textContent = s.textContent; s.replaceWith(m); } else s.replaceWith(document.createTextNode(s.textContent)); });
+      let html = d.innerHTML; if (d.textContent.length > 320) html = esc(d.textContent.slice(0, 300)) + '…';
+      h += `<div class="appear t-${el.type}"><button data-goto="${sc.id}" data-flash="${id}">${esc(sceneLabel(sc.id))}${sc.date ? ' · ' + fmtDate(sc.date) : ''}</button><p>${html}</p></div>`;
+    });
+  }
+  if (!any) h += `<p class="muted small">Not marked in the manuscript yet.</p>`;
+  h += `</div><div class="sec">${ui.adding === 'delete' ? `<div class="form-box"><p style="margin:0 0 10px">Delete ${esc(el.name)}? Its marks are removed from the text; the words stay.</p><div class="btn-row"><button class="btn primary" id="dDelete" style="background:var(--error);border-color:var(--error)">Delete</button><button class="btn" data-cancel>Cancel</button></div></div>` : `<button class="add-link" data-add="delete" style="padding-left:0;color:var(--error)">Delete this story element</button>`}</div>`;
+  return h;
+}
+/* ---------- media ---------- */
+function renderSceneMedia() {
+  const box = $('#sceneMedia'); if (!box || !S || !cur) return;
+  const ms = (S.world.media || []).filter(m => m.sceneId === cur);
+  if (!ms.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = ms.map(m => { const src = imgSrc(m); return `<figure class="sm-item"><button class="sm-photo" data-zoom="${m.id}" aria-label="Enlarge ${esc(m.caption || 'image')}">${src ? `<img src="${esc(src)}" alt="${esc(m.caption || m.description || 'Scene image')}">` : `<span>${esc(m.description || 'Image not stored')}</span>`}</button>${m.caption ? `<figcaption>${esc(m.caption)}</figcaption>` : ''}</figure>`; }).join('');
+}
+const IMG_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.3"/><path d="M14.5 11 10.5 7.5 3 13.5"/></svg>';
+const blobCache = new Map(), objUrls = new Map(), describing = new Set();
+let assetsApi, pendingMediaTarget = null;
+async function getAssets() {
+  if (assetsApi !== undefined) return assetsApi;
+  try { assetsApi = window.claude?.use ? await withTimeout(window.claude.use('assets'), 10000) : null; } catch (e) { assetsApi = null; }
+  return assetsApi;
+}
+const imgSrc = m => objUrls.get(m.id) || m.url || (m.assetId ? '/_blob/' + m.assetId : '');
+function mediaCard(m, ctxEl) {
+  const src = imgSrc(m); const busy = describing.has(m.id);
+  const tagged = m.elIds.map(elById).filter(Boolean);
+  const untagged = S.world.elements.filter(e => !m.elIds.includes(e.id));
+  return `<div class="media-card"><button class="media-thumb" data-zoom="${m.id}" aria-label="Enlarge image">${src ? `<img src="${esc(src)}" alt="${esc(m.caption || m.description || 'Reference image')}" loading="lazy">` : 'Image not stored. Only the description is kept.'}</button><div class="media-body">
+<input data-mcap="${m.id}" value="${esc(m.caption)}" placeholder="Caption, e.g. Jon at sixteen" aria-label="Caption">
+<textarea data-mdesc="${m.id}" placeholder="${busy ? 'Claude is looking at the image…' : 'What the image shows. Write it yourself or ask Claude.'}" aria-label="Description">${esc(busy ? '' : m.description)}</textarea>
+${m.details?.length ? `<div class="detail-list">${m.details.map(d => `<span>${esc(d)}</span>`).join('')}</div>` : ''}
+<div class="media-tags">${tagged.map(e => `<span class="el-chip t-${e.type}"><span class="tdot"></span>${esc(e.name)}<button class="x" data-muntag="${m.id}|${e.id}" aria-label="Untag ${esc(e.name)}">✕</button></span>`).join('')}${untagged.length ? `<select data-mtag="${m.id}" aria-label="Tag a story element"><option value="">+ Tag element…</option>${untagged.map(e => `<option value="${e.id}">${esc(e.name)}</option>`).join('')}</select>` : ''}</div>
+<select data-mscene="${m.id}" aria-label="Scene">${sceneOptions(m.sceneId, 'Not tied to a scene')}</select>
+<div class="media-acts"><button class="btn primary" data-mdescribe="${m.id}" ${busy ? 'disabled' : ''}>${busy ? 'Describing…' : m.description ? 'Describe again' : 'Describe with Claude'}</button>${ctxEl && m.details?.length ? `<button class="btn" data-mnotes="${m.id}|${ctxEl.id}">Add details to notes</button>` : ''}<button class="btn" data-mdel="${m.id}">Remove</button></div>
+</div></div>`;
+}
+async function addMediaFiles(files, target) {
+  const list = [...files].filter(f => /^image\/(jpeg|png|webp|gif)$/.test(f.type));
+  if (!list.length) { toast('Choose a JPEG, PNG, WebP or GIF image.'); return; }
+  const assets = await getAssets();
+  if (!assets) toast("Image storage isn't available in this view. Descriptions are kept, the images are not.");
+  const added = [];
+  for (const f of list) {
+    const rec = { id: newId('m'), assetId: '', url: '', name: f.name, caption: '', description: '', details: [], elIds: target.elId ? [target.elId] : [], sceneId: target.sceneId || '', at: Date.now() };
+    blobCache.set(rec.id, f); objUrls.set(rec.id, URL.createObjectURL(f));
+    if (assets) {
+      try { const r = await assets.upload(f); rec.assetId = r.id; rec.url = r.url; }
+      catch (e) { toast(e?.code === 'not_granted' ? 'Only editors can store images here. The description will still be kept.' : `Couldn't store ${f.name}. The description will still be kept.`); }
+    }
+    S.world.media.push(rec); added.push(rec);
+  }
+  persistNovel(); renderPanel(); renderScenes();
+  for (const rec of added) await describeMedia(rec.id, true);
+}
+async function describeMedia(mid, auto) {
+  const m = S.world.media.find(x => x.id === mid); if (!m) return;
+  const sample = await getSample();
+  if (!sample) { if (!auto) toast("AI isn't available in this view."); return; }
+  const lim = await sample.limits().catch(() => null);
+  if (!lim?.images) { if (!auto) toast("This view can't send images to Claude."); return; }
+  let blob = blobCache.get(mid);
+  if (!blob && imgSrc(m)) { try { const r = await fetch(imgSrc(m)); if (r.ok) blob = await r.blob(); } catch (e) {} }
+  if (!blob) { toast('The image file is not available. Add it again to describe it.'); return; }
+  const els = m.elIds.map(elById).filter(Boolean);
+  const sc = m.sceneId && S.scenes[m.sceneId];
+  const about = els.length ? ` It is a reference picture for ${els.map(e => `the ${TYPES[e.type].label.toLowerCase()} "${e.name}"`).join(' and ')}.` : '';
+  const prompt = `A novelist attached this image to their story world.${about}${sc ? ` It belongs to the scene "${sceneLabel(sc.id)}".` : ''}${m.caption ? ` Their caption: "${m.caption}".` : ''}\n\nDescribe only what is visible, the way a novelist would want it for continuity: for people, apparent age range, build, hair, clothing, posture, expression and what they are doing; for places, the setting, objects, era clues, weather, light and mood. Be concrete and plain. Never say who a real person is or guess a name from their face; refer to people by appearance (or by the story element name given above).\n\nReply with only JSON: {"description":"2 to 3 sentences, e.g. A teenage boy with red hair, wearing a white shirt, sits on a bike; behind him is a gas station.","details":["4 to 8 short facts, e.g. red hair","white shirt","gas station in the background"]}. Write in the same language as this sample of the manuscript: "${manuscriptText(600).replace(/\s+/g, ' ').slice(0, 300)}".`;
+  describing.add(mid); renderPanel();
+  try {
+    const res = await sample.json(prompt, { images: [blob], modelTier: 'default' });
+    m.description = String(res?.description || '').trim();
+    m.details = Array.isArray(res?.details) ? res.details.map(String).map(x => x.trim()).filter(Boolean).slice(0, 10) : [];
+    m.aiAt = Date.now(); persistNovel();
+  } catch (e) {
+    toast(e?.code === 'not_granted' ? 'Image access for Claude was not allowed.' : e?.code === 'image_rejected' ? 'Claude could not read this image file.' : e?.code === 'rate_limited' ? 'Too many AI requests. Try again in a minute.' : "The description didn't finish. Try again.");
+  } finally { describing.delete(mid); renderPanel(); }
+}
+async function removeMedia(mid) {
+  const m = S.world.media.find(x => x.id === mid); if (!m) return;
+  if (m.assetId) { const assets = await getAssets(); if (assets) { try { await assets.delete(m.assetId); } catch (e) { /* keep going: the record is removed either way */ } } }
+  S.world.media = S.world.media.filter(x => x.id !== mid);
+  if (objUrls.has(mid)) URL.revokeObjectURL(objUrls.get(mid));
+  objUrls.delete(mid); blobCache.delete(mid); persistNovel(); renderPanel(); renderScenes();
+}
+$('#fileIn').addEventListener('change', e => { const files = e.target.files; if (files?.length && pendingMediaTarget) addMediaFiles(files, pendingMediaTarget); e.target.value = ''; });
+
+function issueCard(i) {
+  const els = (i.els || []).map(elById).filter(Boolean);
+  return `<div class="issue ${i.sev}"><div class="stripe"></div><div><div class="head"><span class="title">${esc(i.title)}</span><span class="src">${i.src === 'ai' ? 'AI' : 'Rules'}</span></div>${i.detail ? `<div class="detail">${esc(i.detail)}</div>` : ''}${i.quote ? `<blockquote>${esc(i.quote.length > 200 ? i.quote.slice(0, 200) + '…' : i.quote)}</blockquote>` : ''}${i.scene ? `<div class="where">${esc(sceneLabel(i.scene))}</div>` : ''}<div class="acts">${i.scene ? `<button class="btn" data-goto="${i.scene}" ${els[0] ? `data-flash="${els[0].id}"` : ''}>Go to scene</button>` : ''}${i.action === 'markall' ? `<button class="btn primary" data-markall="${i.scene}|${els[0].id}">Mark them</button>` : ''}${els[0] && !i.scene ? `<button class="btn" data-open="${els[0].id}">Open ${esc(els[0].name)}</button>` : ''}<button class="btn" data-dismiss="${esc(i.id)}" data-why="intentional">Intentional</button><button class="btn" data-dismiss="${esc(i.id)}" data-why="dismissed">Dismiss</button></div></div></div>`;
+}
+function panelIssues() {
+  const groups = [['error', 'Errors'], ['warning', 'Warnings'], ['idea', 'Ideas and suggestions']];
+  let h = '';
+  if (!ISSUES.length) h += `<p class="muted">No open issues. The rules check traits, presence, dates and unmarked names on every edit. Use “Review this scene” for a deeper AI read.</p>`;
+  for (const [k, label] of groups) {
+    const xs = ISSUES.filter(i => i.sev === k); if (!xs.length) continue;
+    h += `<div class="sev-head"><span class="dot" style="background:var(--${k})"></span>${label} <span class="muted small">${xs.length}</span></div>` + xs.map(issueCard).join('');
+  }
+  const nd = Object.keys(S.world.dismissed).length;
+  if (nd) h += `<p class="small muted" style="margin-top:16px">${nd} issue${nd === 1 ? '' : 's'} marked intentional or dismissed. <button class="add-link" id="restoreIssues" style="padding:0">Show them again</button></p>`;
+  return h;
+}
+function panelAsk() {
+  const presets = ['Who knows about the brass key, and since when?', 'Where is everyone on the night of the storm?', 'What threads have I set up but not paid off?'];
+  return `<p class="small muted" style="margin-top:0">Ask a question about your story. Claude answers from your manuscript and story elements only, citing scenes.</p><div class="field"><textarea id="askQ" placeholder="e.g. Who knows about the letter by chapter 2?">${esc(ui.askText)}</textarea></div><div class="btn-row"><button class="btn primary" id="askGo" ${ui.askBusy ? 'disabled' : ''}>${ui.askBusy ? 'Thinking…' : 'Ask'}</button></div><div class="type-row" style="margin-top:10px">${presets.map(p => `<button class="type-chip" data-preset="${esc(p)}">${esc(p)}</button>`).join('')}</div><div class="answer" id="askA">${esc(ui.askAnswer)}</div>`;
+}
+
+/* ---------- panel events ---------- */
+$('#tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (!t) return; ui.tab = t.dataset.tab; ui.adding = null; renderPanel(); });
+function openDossier(id) { ui.tab = 'elements'; ui.dossier = id; ui.adding = null; renderPanel(); $('#panel').scrollTop = 0; if (isMobile()) setView('world'); }
+document.addEventListener('click', e => {
+  const t = e.target;
+  const open = t.closest('[data-open]'); if (open && !$('#pop').contains(open)) { openDossier(open.dataset.open); return; }
+  const go = t.closest('[data-goto]'); if (go) { openScene(go.dataset.goto); if (go.dataset.flash) setTimeout(() => flashElement(go.dataset.flash), 60); return; }
+  const sc = t.closest('[data-scene]'); if (sc) { openScene(sc.dataset.scene); return; }
+  const as = t.closest('[data-addscene]'); if (as) { addScene(as.dataset.addscene); return; }
+  if (t.closest('#addChapter')) { addChapter(); return; }
+  if (t.closest('#startBlank')) { askConfirm('Start a blank book?', 'The sample story is not saved anywhere, so nothing is lost.', 'Start blank', () => replaceStory(blankStory())); return; }
+  const ma = t.closest('[data-markall]'); if (ma) { const [s, el] = ma.dataset.markall.split('|'); markAll(s, el); return; }
+  const dm = t.closest('[data-dismiss]'); if (dm) { S.world.dismissed[dm.dataset.dismiss] = dm.dataset.why; persistNovel(); refreshIssues(true); toast(dm.dataset.why === 'intentional' ? 'Marked as intentional. The checker will stay quiet about it.' : 'Dismissed.'); return; }
+  if (t.closest('#restoreIssues')) { S.world.dismissed = {}; persistNovel(); refreshIssues(true); return; }
+  if (t.closest('[data-back]')) { ui.dossier = null; ui.adding = null; renderPanel(); return; }
+  const ad = t.closest('[data-add]'); if (ad) { ui.adding = ad.dataset.add; renderPanel(); const f = $('#panel .form-box input, #panel .form-box select'); if (f) f.focus(); return; }
+  if (t.closest('[data-cancel]')) { ui.adding = null; renderPanel(); return; }
+  if (t.closest('#newEl')) { ui.adding = ui.adding === 'element' ? null : 'element'; renderPanel(); if (ui.adding) $('#neName').focus(); return; }
+  if (t.closest('#neSave')) { const n = $('#neName').value.trim(); if (!n) { toast('Give it a name.'); return; } const el = { id: newId('e_'), type: $('#neType').value, name: n, aliases: [], notes: '', traits: [] }; S.world.elements.push(el); persistNovel(); ui.adding = null; openDossier(el.id); refreshIssues(); return; }
+  if (t.closest('#tSave')) { saveTrait(); return; }
+  const dt = t.closest('[data-deltrait]'); if (dt) { const el = elById(ui.dossier); el.traits = el.traits.filter(x => x.id !== dt.dataset.deltrait); persistNovel(); renderPanel(); refreshIssues(true); return; }
+  if (t.closest('#lSave')) { const rel = $('#lRel').value.trim(); if (!rel) { toast('Describe the link, e.g. “lives in”.'); return; } S.world.links.push({ id: newId('l'), a: ui.dossier, rel, b: $('#lB').value, during: $('#lD').value }); persistNovel(); ui.adding = null; renderPanel(); return; }
+  const dl = t.closest('[data-dellink]'); if (dl) { S.world.links = S.world.links.filter(l => l.id !== dl.dataset.dellink); persistNovel(); renderPanel(); return; }
+  if (t.closest('#dDelete')) { deleteElement(ui.dossier); return; }
+  if (t.closest('#dSum')) { summarize(ui.dossier); return; }
+  if (t.closest('#aiReview')) { reviewScene(cur); return; }
+  if (t.closest('#askGo')) { ask(); return; }
+  const pr = t.closest('[data-preset]'); if (pr) { ui.askText = pr.dataset.preset; renderPanel(); ask(); return; }
+  const am = t.closest('[data-addmedia]'); if (am) { pendingMediaTarget = am.dataset.addmedia === 'el' ? { elId: ui.dossier } : { sceneId: cur }; $('#fileIn').click(); return; }
+  const md = t.closest('[data-mdescribe]'); if (md) { describeMedia(md.dataset.mdescribe, false); return; }
+  const mu = t.closest('[data-muntag]'); if (mu) { const [mid, eid] = mu.dataset.muntag.split('|'); const m = S.world.media.find(x => x.id === mid); m.elIds = m.elIds.filter(x => x !== eid); persistNovel(); renderPanel(); return; }
+  const mn = t.closest('[data-mnotes]'); if (mn) { const [mid, eid] = mn.dataset.mnotes.split('|'); const m = S.world.media.find(x => x.id === mid); const el = elById(eid); const add = `From image${m.caption ? ' “' + m.caption + '”' : ''}: ${m.details.join(', ')}.`; el.notes = (el.notes ? el.notes.trim() + '\n' : '') + add; persistNovel(); renderPanel(); toast(`Added to ${el.name}'s notes as planned canon.`); return; }
+  const mdel = t.closest('[data-mdel]'); if (mdel) { askConfirm('Remove this image?', 'The image file and its description are deleted. This cannot be undone.', 'Remove', () => removeMedia(mdel.dataset.mdel)); return; }
+  const mz = t.closest('[data-zoom]'); if (mz) { const m = S.world.media.find(x => x.id === mz.dataset.zoom); const src = m && imgSrc(m); if (src) { const host = $('#confirmHost'); host.innerHTML = `<div class="lightbox" role="dialog" aria-label="Image"><img src="${esc(src)}" alt="${esc(m.caption || m.description || 'Reference image')}"></div>`; host.firstChild.onclick = () => { host.innerHTML = ''; }; } return; }
+  if (t.closest('#issueChip')) { ui.tab = 'issues'; renderPanel(); if (isMobile()) setView('world'); return; }
+});
+document.addEventListener('input', e => {
+  const t = e.target; const el = ui.dossier && elById(ui.dossier);
+  if (t.dataset.ch) { const c = S.book.chapters.find(c => c.id === t.dataset.ch); c.title = t.value; persistNovel(); return; }
+  if (t.id === 'elFilter') { ui.filter = t.value; const pos = t.selectionStart; renderPanel(); const f = $('#elFilter'); f.focus(); f.setSelectionRange(pos, pos); return; }
+  if (t.id === 'askQ') { ui.askText = t.value; return; }
+  if (t.dataset.mcap) { const m = S.world.media.find(x => x.id === t.dataset.mcap); m.caption = t.value; persistNovel(); return; }
+  if (t.dataset.mdesc) { const m = S.world.media.find(x => x.id === t.dataset.mdesc); m.description = t.value; persistNovel(); return; }
+  if (!el) return;
+  if (t.id === 'dName') { el.name = t.value; persistNovel(); paintMarks($('#editor')); renderScenes(); refreshIssues(); }
+  if (t.id === 'dAliases') { el.aliases = t.value.split(',').map(s => s.trim()).filter(Boolean); persistNovel(); refreshIssues(); }
+  if (t.id === 'dNotes') { el.notes = t.value; persistNovel(); refreshIssues(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target; const el = ui.dossier && elById(ui.dossier);
+  if (t.dataset.mtag) { const m = S.world.media.find(x => x.id === t.dataset.mtag); if (t.value && !m.elIds.includes(t.value)) m.elIds.push(t.value); persistNovel(); renderPanel(); return; }
+  if (t.dataset.mscene) { const m = S.world.media.find(x => x.id === t.dataset.mscene); m.sceneId = t.value; persistNovel(); renderPanel(); renderScenes(); return; }
+  if (t.id === 'dType' && el) { el.type = t.value; persistNovel(); paintMarks($('#editor')); renderPanel(); refreshIssues(true); }
+});
+function saveTrait() {
+  const el = elById(ui.dossier); const name = $('#tName').value.trim(); if (!name) { toast('Name the trait, e.g. “can’t swim”.'); return; }
+  el.traits = el.traits || [];
+  el.traits.push({ id: newId('t'), name, kind: $('#tKind').value, words: $('#tWords').value.split(',').map(s => s.trim()).filter(Boolean), absent: $('#tAbsent').checked, from: $('#tFrom').value, until: $('#tUntil').value });
+  persistNovel(); ui.adding = null; renderPanel(); refreshIssues(true);
+}
+function deleteElement(id) {
+  S.world.elements = S.world.elements.filter(e => e.id !== id);
+  S.world.links = S.world.links.filter(l => l.a !== id && l.b !== id);
+  (S.world.media || []).forEach(m => { m.elIds = m.elIds.filter(x => x !== id); });
+  for (const sc of sceneList()) {
+    if (!sc.html.includes(id)) continue;
+    const d = document.createElement('div'); d.innerHTML = sc.html;
+    d.querySelectorAll('.mk').forEach(s => { const ids = s.dataset.el.split(',').filter(x => x !== id); if (ids.length) s.dataset.el = ids.join(','); else s.replaceWith(...s.childNodes); });
+    sc.html = cleanHTML(d.innerHTML); persistScene(sc.id);
+  }
+  persistNovel(); ui.dossier = null; ui.adding = null;
+  $('#editor').innerHTML = S.scenes[cur].html; paintMarks($('#editor'));
+  renderPanel(); refreshIssues(true);
+}
+function addScene(chId) {
+  flushEditor();
+  const id = newId('s'); S.scenes[id] = { id, chapterId: chId, title: 'New scene', date: '', note: '', html: '' };
+  const lastIdx = S.book.sceneOrder.map(x => S.scenes[x]?.chapterId).lastIndexOf(chId);
+  S.book.sceneOrder.splice(lastIdx + 1 || S.book.sceneOrder.length, 0, id);
+  persistNovel(); persistScene(id); openScene(id); $('#sceneTitle').select();
+}
+function addChapter() {
+  const c = { id: newId('c'), title: `Chapter ${S.book.chapters.length + 1}` }; S.book.chapters.push(c); persistNovel(); addScene(c.id);
+}
+
+/* ---------- AI (sample capability) ---------- */
+let sampleFn;
+async function getSample() {
+  if (sampleFn !== undefined) return sampleFn;
+  try { sampleFn = window.claude?.use ? await withTimeout(window.claude.use('sample'), 10000) : null; } catch (e) { sampleFn = null; }
+  return sampleFn;
+}
+function plainScene(sc) {
+  const d = document.createElement('div'); d.innerHTML = sc.html || '';
+  d.querySelectorAll('.mk').forEach(s => { const names = s.dataset.el.split(',').map(elById).filter(Boolean).map(e => e.name).join('+'); s.replaceWith(document.createTextNode(`[${s.textContent}]{${names}}`)); });
+  return [...d.querySelectorAll('p')].map(p => p.textContent).join('\n\n') || d.textContent;
+}
+function canonText() {
+  const lines = S.world.elements.map(e => {
+    const tr = (e.traits || []).map(t => `    - trait (${t.kind}${t.absent ? ', cannot be present' : ''}): ${t.name}${t.from ? '; after ' + sceneLabel(t.from) : ''}${t.until ? '; until ' + sceneLabel(t.until) : ''}`).join('\n');
+    const im = (S.world.media || []).filter(m => m.elIds.includes(e.id) && m.description).map(m => `    - reference image${m.caption ? ' "' + m.caption + '"' : ''}: ${m.description}`).join('\n');
+    return `- ${TYPES[e.type].label}: ${e.name}${e.aliases?.length ? ' (also: ' + e.aliases.join(', ') + ')' : ''}${e.notes ? '\n    notes (planned canon): ' + e.notes : ''}${tr ? '\n' + tr : ''}${im ? '\n' + im : ''}`;
+  });
+  const links = S.world.links.map(l => { const A = elById(l.a), B = elById(l.b), D = elById(l.during); return A && B ? `- ${A.name} ${l.rel} ${B.name}${D ? ' during ' + D.name : ''}` : ''; }).filter(Boolean);
+  return `STORY ELEMENTS\n${lines.join('\n')}\n\nLINKS\n${links.join('\n') || '(none)'}`;
+}
+function manuscriptText(limit = 90000) {
+  let out = ''; for (const sc of sceneList()) {
+    const ims = (S.world.media || []).filter(m => m.sceneId === sc.id && m.description).map(m => `\n[scene image${m.caption ? ' "' + m.caption + '"' : ''}: ${m.description}]`).join('');
+    const block = `\n\n=== ${sceneLabel(sc.id)} | story date: ${sc.date ? sc.date : 'undated'}${sc.note ? ' (' + sc.note + ')' : ''} ===\n${plainScene(sc)}${ims}`;
+    if (out.length + block.length > limit) { out += '\n\n[later scenes omitted for length]'; break; } out += block;
+  }
+  return out;
+}
+async function reviewScene(id) {
+  flushEditor();
+  const sample = await getSample(); const st = $('#aiState');
+  if (!sample) { if (st) st.textContent = "AI isn't available in this view."; return; }
+  const btn = $('#aiReview'); if (btn) btn.disabled = true; if (st) st.textContent = 'Reading the manuscript…';
+  const prompt = `You are a continuity editor for a novel in progress. Below are the author's story elements (canon), then the manuscript in reading order. Marked text appears as [text]{Element}.\n\nReview ONLY the scene titled "${sceneLabel(id)}" (the TARGET). Find contradictions with canon or with earlier scenes in story time (dates), knowledge a character should not have yet, travel or timing problems, broken traits, and drift in names or facts. Soft traits are tensions, not errors: report them as warnings with an idea. Author notes are planned canon. Also give at most two ideas that would strengthen the scene using existing story elements. Do not repeat the same point twice.\n\nReply with only JSON: {"issues":[{"severity":"error|warning|idea","title":"short title","detail":"one or two sentences","quote":"an exact short quote from the target scene, or empty"}]}. At most 6 issues. Write in the manuscript's language.\n\n${canonText()}\n\nMANUSCRIPT${manuscriptText()}`;
+  try {
+    const res = await sample.json(prompt, { modelTier: 'default' });
+    const issues = Array.isArray(res?.issues) ? res.issues.filter(x => x && x.title).slice(0, 8).map(x => ({ severity: String(x.severity || 'idea'), title: String(x.title), detail: String(x.detail || ''), quote: String(x.quote || '') })) : [];
+    S.scenes[id].ai = { at: Date.now(), issues }; persistScene(id);
+    refreshIssues(true); toast(issues.length ? `AI review found ${issues.length} point${issues.length === 1 ? '' : 's'}.` : 'AI review found nothing to flag.');
+    if (ui.tab === 'scene') renderPanel();
+  } catch (e) {
+    const msg = e?.code === 'not_granted' ? 'AI access was not allowed for this page.' : e?.code === 'rate_limited' ? 'Too many AI requests. Try again in a minute.' : "The AI review didn't finish. Try again.";
+    if ($('#aiState')) $('#aiState').textContent = msg; else toast(msg);
+  } finally { if ($('#aiReview')) $('#aiReview').disabled = false; }
+}
+async function summarize(id) {
+  const el = elById(id); const sample = await getSample(); const box = $('#dSummary');
+  if (!sample) { toast("AI isn't available in this view."); return; }
+  const passages = [];
+  for (const sc of sceneList()) analyze(sc).paras.filter(p => p.ids.has(id)).forEach(p => passages.push(`[${sceneLabel(sc.id)}${sc.date ? ', ' + sc.date : ''}] ${p.text}`));
+  if (!passages.length) { toast(`${el.name} isn't marked in the text yet.`); return; }
+  const prompt = `Write a dossier summary of the ${TYPES[el.type].label.toLowerCase()} "${el.name}" from a novel, using ONLY the passages below and the author's facts. 3 to 5 sentences of plain prose. After each claim cite the scene in brackets exactly as given, e.g. [Ch 1 · The cliffs]. Say how the element changes over story time if it does. Mark anything that only the author's notes state as (planned). Write in the passages' language.\n\nAuthor's facts:\n${el.notes || '(none)'}\nTraits: ${(el.traits || []).map(t => `${t.name} (${t.kind})`).join('; ') || '(none)'}\nReference images (planned canon): ${(S.world.media || []).filter(m => m.elIds.includes(id) && m.description).map(m => m.description).join(' | ') || '(none)'}\n\nPassages:\n${passages.join('\n\n')}`;
+  const btn = $('#dSum'); if (btn) btn.disabled = true; if (box) { box.classList.remove('muted'); box.textContent = 'Reading the passages…'; }
+  try {
+    const { text } = await sample(prompt, { modelTier: 'default', onText: ({ text }) => { const b = $('#dSummary'); if (b && ui.dossier === id) b.textContent = text; } });
+    el.summary = text.trim(); el.summaryAt = Date.now(); persistNovel(); if (ui.dossier === id) renderPanel();
+  } catch (e) {
+    if (e?.text) { el.summary = e.text.trim(); el.summaryAt = Date.now(); persistNovel(); }
+    toast(e?.code === 'not_granted' ? 'AI access was not allowed for this page.' : "The summary didn't finish. Try again."); if (ui.dossier === id) renderPanel();
+  }
+}
+async function ask() {
+  flushEditor();
+  const q = (ui.askText || '').trim(); if (!q) { toast('Type a question first.'); return; }
+  const sample = await getSample(); if (!sample) { ui.askAnswer = "AI isn't available in this view."; renderPanel(); return; }
+  ui.askBusy = true; ui.askAnswer = ''; renderPanel();
+  const prompt = `Answer the author's question about their novel using ONLY the story elements and manuscript below. Be concise. Cite scenes in brackets, e.g. [Ch 2 · The lamp room]. If the text does not settle it, say what is missing. Answer in the question's language.\n\nQuestion: ${q}\n\n${canonText()}\n\nMANUSCRIPT${manuscriptText()}`;
+  try {
+    const { text } = await sample(prompt, { modelTier: 'default', onText: ({ text }) => { ui.askAnswer = text; const a = $('#askA'); if (a) a.textContent = text; } });
+    ui.askAnswer = text;
+  } catch (e) { ui.askAnswer = (e?.text ? e.text + '\n\n' : '') + (e?.code === 'not_granted' ? 'AI access was not allowed for this page.' : "The answer didn't finish. Try again."); }
+  ui.askBusy = false; if (ui.tab === 'ask') renderPanel();
+}
+
+/* ---------- misc ui ---------- */
+let toastT;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 3200); }
+function askConfirm(title, text, okLabel, fn) {
+  const host = $('#confirmHost');
+  host.innerHTML = `<div class="confirm" role="dialog" aria-modal="true"><div class="box"><h4>${esc(title)}</h4><p>${esc(text)}</p><div class="btn-row" style="justify-content:flex-end"><button class="btn" id="cNo">Cancel</button><button class="btn primary" id="cYes">${esc(okLabel)}</button></div></div></div>`;
+  $('#cNo').onclick = () => { host.innerHTML = ''; };
+  $('#cYes').onclick = () => { host.innerHTML = ''; fn(); };
+  $('#cYes').focus();
+}
+$('#newBook').addEventListener('click', () => {
+  const host = $('#confirmHost');
+  host.innerHTML = `<div class="confirm" role="dialog" aria-modal="true"><div class="box"><h4>Start a new book</h4><p>${isDemo ? 'Choose how to start.' : 'This replaces your current book. It cannot be undone.'}</p><div class="btn-row" style="justify-content:flex-end"><button class="btn" id="cNo">Cancel</button><button class="btn" id="cSample">Load sample story</button><button class="btn primary" id="cBlank">Blank book</button></div></div></div>`;
+  $('#cNo').onclick = () => { host.innerHTML = ''; };
+  $('#cSample').onclick = () => { host.innerHTML = ''; replaceStory(sampleStory()); };
+  $('#cBlank').onclick = () => { host.innerHTML = ''; replaceStory(blankStory()); };
+});
+function replaceStory(data) {
+  const oldIds = S ? Object.keys(S.scenes) : [];
+  clearTimeout(syncTimer); syncTimer = null;
+  S = data; isDemo = false; anaCache.clear(); ui.dossier = null; ui.adding = null;
+  start(); persistAll(oldIds).then(() => toast('New book saved.'));
+}
+$('#marksToggle').addEventListener('click', e => {
+  const on = !$('#editor').classList.toggle('marks-off'); e.currentTarget.textContent = on ? 'Marks on' : 'Marks off'; e.currentTarget.setAttribute('aria-pressed', on);
+});
+const isMobile = () => window.matchMedia('(max-width: 860px)').matches;
+function setView(v) { $('#app').dataset.view = v; document.querySelectorAll('#mobileTabs button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
+$('#mobileTabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { setView(b.dataset.v); if (b.dataset.v === 'world') renderPanel(); } });
+window.addEventListener('resize', () => { $('#markBtn').hidden = true; });
+
+/* ---------- series bible ---------- */
+const BIBLE_CSS = `
+.bible { font-family: "Literata", Georgia, "Times New Roman", serif; color: #1b1f1d; background: #ffffff; line-height: 1.55; font-size: 15px; padding: 60px 68px 80px; }
+.bible h1, .bible h2, .bible h3, .bible h4, .bible .b-kicker, .bible th, .bible .b-meta { font-family: "Instrument Sans", "Helvetica Neue", Arial, sans-serif; }
+.bible .b-cover { border-bottom: 3px solid #1b1f1d; padding-bottom: 30px; margin-bottom: 30px; }
+.bible .b-kicker { text-transform: uppercase; letter-spacing: .16em; font-size: 11.5px; color: #6a716d; margin: 0 0 10px; }
+.bible h1 { font-family: "Literata", Georgia, serif; font-size: 46px; line-height: 1.05; margin: 0 0 14px; letter-spacing: -.01em; }
+.bible .b-meta { font-size: 13px; color: #5b625e; }
+.bible .b-logline { font-size: 20px; line-height: 1.45; font-style: italic; margin: 22px 0 0; max-width: 40em; }
+.bible h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .14em; margin: 46px 0 6px; padding-top: 14px; border-top: 1px solid #1b1f1d; display: flex; gap: 12px; }
+.bible h2 span { color: #8a918d; font-variant-numeric: tabular-nums; }
+.bible h3 { font-size: 22px; margin: 0 0 2px; font-family: "Literata", Georgia, serif; }
+.bible h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: #6a716d; margin: 14px 0 4px; }
+.bible p { margin: 0 0 10px; max-width: 42em; }
+.bible .b-toc { columns: 2; column-gap: 32px; padding: 0; list-style: none; font-family: "Instrument Sans", Arial, sans-serif; font-size: 14px; }
+.bible .b-toc li { padding: 3px 0; border-bottom: 1px dotted #cfd3d0; display: flex; justify-content: space-between; break-inside: avoid; }
+.bible .b-toc a { color: inherit; text-decoration: none; }
+.bible .b-card { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 22px; padding: 22px 0; border-bottom: 1px solid #e3e5e3; break-inside: avoid; }
+.bible .b-card.b-small { grid-template-columns: 96px minmax(0, 1fr); }
+.bible .b-pic { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 3px; background: #eef0ee; display: block; }
+.bible .b-small .b-pic { aspect-ratio: 1; }
+.bible .b-noimg { width: 100%; aspect-ratio: 4 / 5; border-radius: 3px; display: grid; place-items: center; font-family: "Literata", Georgia, serif; font-size: 40px; color: #fff; }
+.bible .b-small .b-noimg { aspect-ratio: 1; font-size: 28px; }
+.bible .b-aka { font-family: "Instrument Sans", Arial, sans-serif; font-size: 13px; color: #6a716d; margin-bottom: 8px; }
+.bible .b-tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 4px 0 0; padding: 0; list-style: none; }
+.bible .b-tags li { font-family: "Instrument Sans", Arial, sans-serif; font-size: 12px; border: 1px solid #d5d9d6; border-radius: 999px; padding: 1px 9px; }
+.bible table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 4px 0 8px; }
+.bible th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: #6a716d; font-weight: 600; border-bottom: 1px solid #1b1f1d; padding: 6px 8px 5px 0; }
+.bible td { border-bottom: 1px solid #e3e5e3; padding: 6px 8px 6px 0; vertical-align: top; }
+.bible td.b-num { font-family: "JetBrains Mono", Menlo, monospace; font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bible .b-kind { font-family: "Instrument Sans", Arial, sans-serif; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+.bible .b-hard { color: #b2342a; } .bible .b-soft { color: #9a6a0e; } .bible .b-knowledge { color: #2f6fb0; }
+.bible .b-scene { padding: 16px 0; border-bottom: 1px solid #e3e5e3; break-inside: avoid; }
+.bible .b-scene h4 { margin-top: 0; }
+.bible .b-scene .b-title { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+.bible .b-chapter { font-family: "Literata", Georgia, serif; font-size: 26px; margin: 28px 0 0; }
+.bible .b-thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.bible .b-thumbs figure { margin: 0; width: 150px; font-family: "Instrument Sans", Arial, sans-serif; font-size: 11.5px; color: #5b625e; }
+.bible .b-thumbs img { width: 150px; height: 104px; object-fit: cover; border-radius: 3px; display: block; margin-bottom: 3px; }
+.bible .b-note { font-family: "Instrument Sans", Arial, sans-serif; font-size: 12.5px; color: #6a716d; }
+.bible .b-issue { padding: 8px 0 8px 12px; border-left: 3px solid #d5d9d6; margin-bottom: 8px; }
+.bible .b-issue.b-error { border-left-color: #c0392b; } .bible .b-issue.b-warning { border-left-color: #c48a1a; }
+.bible .b-ms p { text-indent: 1.5em; margin: 0; max-width: none; } .bible .b-ms p:first-child { text-indent: 0; }
+.bible .b-ms h4 { margin-top: 26px; }
+@media (max-width: 640px) { .bible { padding: 30px 18px 50px; } .bible h1 { font-size: 34px; } .bible .b-card, .bible .b-card.b-small { grid-template-columns: 1fr; } .bible .b-pic, .bible .b-noimg { max-width: 220px; } .bible .b-toc { columns: 1; } }
+@media print { .bible { padding: 0; font-size: 11pt; } .bible h2 { break-before: page; } .bible .b-card, .bible .b-scene { break-inside: avoid; } }`;
+const TYPE_ORDER = [['person', 'Characters'], ['place', 'Locations'], ['group', 'Groups and factions'], ['object', 'Objects'], ['time', 'Times and eras'], ['rule', 'World rules']];
+const TYPE_HEX = { person: '#b0416a', place: '#1d7a6c', time: '#a3660f', object: '#6b4fb3', group: '#4c7a24', rule: '#4b5563' };
+function bibleData() { S.book.bible = S.book.bible || { logline: '', premise: '', tone: '', synopses: {}, arcs: {}, at: 0 }; return S.book.bible; }
+function firstSentences(text, n = 2) { const m = (text || '').replace(/\s+/g, ' ').trim().match(/[^.!?]+[.!?]+["'”’]?/g) || [text || '']; return m.slice(0, n).join(' ').trim(); }
+function sceneSynopsis(sc) { const b = bibleData(); return b.synopses[sc.id] || firstSentences(analyze(sc).paras.map(p => p.text).join(' ')); }
+async function imageDataUrl(m) {
+  let blob = blobCache.get(m.id);
+  if (!blob && imgSrc(m)) { try { const r = await fetch(imgSrc(m)); if (r.ok) blob = await r.blob(); } catch (e) {} }
+  if (!blob) return '';
+  try {
+    const bmp = await createImageBitmap(blob); const k = Math.min(1, 900 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); return c.toDataURL('image/jpeg', 0.82);
+  } catch (e) { return ''; }
+}
+function bibleHTML(opts) {
+  // opts: {edit: bool, img: Map(mediaId -> src), full: bool}
+  const b = bibleData(); const K = storyKeys(); const scenes = sceneList(); const A = {}; scenes.forEach(sc => { A[sc.id] = analyze(sc); });
+  const img = m => opts.img.get(m.id) || '';
+  const words = scenes.reduce((n, sc) => n + A[sc.id].words, 0);
+  const today = new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  const field = (key, label, rows) => opts.edit ? `<textarea class="b-edit" data-bible="${key}" rows="${rows}" placeholder="${esc(label)}: write it here or use Prepare with Claude">${esc(b[key])}</textarea>` : (b[key] ? `<p>${esc(b[key]).replace(/\n+/g, '</p><p>')}</p>` : '');
+  const appearsIn = id => scenes.filter(sc => A[sc.id].present.has(id));
+  const elMedia = id => (S.world.media || []).filter(m => m.elIds.includes(id));
+  const kind = t => `<span class="b-kind b-${t.kind}">${KINDS[t.kind]}</span>`;
+  const window_ = t => `${t.from ? 'after ' + esc(sceneLabel(t.from)) : 'from the start'}${t.until ? ', until ' + esc(sceneLabel(t.until)) : ''}`;
+  const sections = []; let n = 0;
+  const sec = (id, title, body) => { if (!body) return; n++; sections.push({ id, title, n, body }); };
+
+  // 1 premise
+  const prem = opts.edit ? `<h4>Premise</h4>${field('premise', 'Premise', 4)}<h4>Tone and style</h4>${field('tone', 'Tone and style', 3)}`
+    : `${b.premise ? '<h4>Premise</h4>' + field('premise') : ''}${b.tone ? '<h4>Tone and style</h4>' + field('tone') : ''}`;
+  sec('premise', 'Premise and tone', prem.replace(/<h4>[^<]*<\/h4>(?=<h4>|$)/g, ''));
+
+  // element sections
+  for (const [type, title] of TYPE_ORDER) {
+    const els = S.world.elements.filter(e => e.type === type).sort((x, y) => appearsIn(y.id).length - appearsIn(x.id).length);
+    if (!els.length) continue;
+    const big = type === 'person';
+    const body = els.map(e => {
+      const ms = elMedia(e.id); const pic = ms.map(img).find(Boolean);
+      const looks = ms.filter(m => m.description);
+      const links = S.world.links.filter(l => l.a === e.id || l.b === e.id).map(l => { const A2 = elById(l.a), B2 = elById(l.b), D = elById(l.during); return A2 && B2 ? `<li>${esc(A2.name)} <i>${esc(l.rel)}</i> ${esc(B2.name)}${D ? ' <i>during</i> ' + esc(D.name) : ''}</li>` : ''; }).join('');
+      const app = appearsIn(e.id);
+      const summary = e.summary || e.notes || '';
+      return `<div class="b-card ${big ? '' : 'b-small'}" id="el-${e.id}">${pic ? `<img class="b-pic" src="${pic}" alt="${esc(e.name)}">` : `<div class="b-noimg" style="background:${TYPE_HEX[e.type]}">${esc((e.name.replace(/^the\s+/i, '')[0] || '?').toUpperCase())}</div>`}<div>
+<h3>${esc(e.name)}</h3>${e.aliases?.length ? `<div class="b-aka">Also: ${esc(e.aliases.join(', '))}</div>` : ''}
+${summary ? `<p>${esc(summary).replace(/\n+/g, '</p><p>')}</p>` : ''}
+${e.summary && e.notes ? `<h4>Author's notes</h4><p>${esc(e.notes).replace(/\n+/g, '</p><p>')}</p>` : ''}
+${b.arcs[e.id] ? `<h4>Arc</h4><p>${esc(b.arcs[e.id])}</p>` : ''}
+${looks.length ? `<h4>${type === 'person' ? 'Appearance' : 'Look'}</h4>${looks.map(m => `<p>${esc(m.description)}</p>${m.details?.length ? `<ul class="b-tags">${m.details.map(d => `<li>${esc(d)}</li>`).join('')}</ul>` : ''}`).join('')}` : ''}
+${(e.traits || []).length ? `<h4>Rules and limits</h4><table><tr><th>Kind</th><th>Trait</th><th>Applies</th></tr>${e.traits.map(t => `<tr><td>${kind(t)}</td><td>${esc(t.name)}${t.absent ? ' <span class="b-note">(cannot be present)</span>' : ''}</td><td class="b-note">${window_(t)}</td></tr>`).join('')}</table>` : ''}
+${links ? `<h4>Relationships</h4><ul class="b-tags">${links}</ul>` : ''}
+<h4>Appears in</h4><p class="b-note">${app.length ? app.map(sc => esc(sceneLabel(sc.id))).join(' · ') : 'Not yet in the manuscript (planned).'}</p>
+</div></div>`;
+    }).join('');
+    sec(type, title, body);
+  }
+
+  // timeline
+  const ordered = [...scenes].sort((x, y) => cmpScenes(x.id, y.id, K));
+  const tl = `<table><tr><th>Story date</th><th>Scene</th><th>Where</th><th>Who</th></tr>${ordered.map(sc => { const pr = [...A[sc.id].present].map(elById).filter(Boolean); const k = K[sc.id];
+    return `<tr><td class="b-num">${sc.date ? esc(fmtDate(sc.date)) : k.key ? '≈ ' + esc(fmtDate(k.key)) : 'Undated'}${sc.note ? `<div class="b-note">${esc(sc.note)}</div>` : ''}</td><td>${esc(sceneLabel(sc.id))}</td><td>${esc(pr.filter(e => e.type === 'place').map(e => e.name).join(', ')) || '<span class="b-note">–</span>'}</td><td>${esc(pr.filter(e => e.type === 'person').map(e => e.name).join(', ')) || '<span class="b-note">–</span>'}</td></tr>`; }).join('')}</table><p class="b-note">Ordered by story time; reading order breaks ties. “≈” marks scenes placed after the previous dated scene.</p>`;
+  sec('timeline', 'Timeline', tl);
+
+  // breakdown
+  let bd = '';
+  S.book.chapters.forEach((c, ci) => {
+    const cs = scenes.filter(sc => sc.chapterId === c.id); if (!cs.length) return;
+    bd += `<div class="b-chapter">${ci + 1}. ${esc(c.title)}</div>`;
+    cs.forEach(sc => { const pr = [...A[sc.id].present].map(elById).filter(Boolean); const ms = (S.world.media || []).filter(m => m.sceneId === sc.id);
+      bd += `<div class="b-scene"><div class="b-title">${esc(sc.title || 'Untitled')}</div><div class="b-note">${sc.date ? esc(fmtDate(sc.date)) : 'Undated'}${sc.note ? ' · ' + esc(sc.note) : ''} · ${A[sc.id].words} words</div><p style="margin-top:8px">${esc(sceneSynopsis(sc))}</p>${pr.length ? `<ul class="b-tags">${pr.map(e => `<li>${esc(e.name)}</li>`).join('')}</ul>` : ''}${ms.length ? `<div class="b-thumbs">${ms.map(m => img(m) ? `<figure><img src="${img(m)}" alt="${esc(m.caption || 'Scene image')}">${esc(m.caption || '')}</figure>` : (m.description ? `<figure>${esc(m.caption ? m.caption + ': ' : '')}${esc(m.description)}</figure>` : '')).join('')}</div>` : ''}</div>`; });
+  });
+  sec('breakdown', 'Chapter and scene breakdown', bd);
+
+  // continuity
+  const open = ISSUES.filter(i => i.sev !== 'idea');
+  const planned = S.world.elements.filter(e => !scenes.some(sc => A[sc.id].present.has(e.id)));
+  const cont = `${open.length ? `<h4>Open continuity issues</h4>${open.map(i => `<div class="b-issue b-${i.sev}"><b>${esc(i.title)}</b>${i.scene ? ` <span class="b-note">${esc(sceneLabel(i.scene))}</span>` : ''}<div>${esc(i.detail || '')}</div></div>`).join('')}` : '<p>No open continuity errors or warnings.</p>'}
+${Object.keys(S.world.dismissed).length ? `<p class="b-note">${Object.keys(S.world.dismissed).length} issue(s) marked intentional or dismissed by the author.</p>` : ''}
+${planned.length ? `<h4>Planned, not yet in the text</h4><ul class="b-tags">${planned.map(e => `<li>${esc(e.name)}</li>`).join('')}</ul>` : ''}`;
+  sec('continuity', 'Continuity notes', cont);
+
+  if (opts.full) sec('manuscript', 'Manuscript', `<div class="b-ms">${S.book.chapters.map((c, ci) => { const cs = scenes.filter(sc => sc.chapterId === c.id); return cs.length ? `<div class="b-chapter">${ci + 1}. ${esc(c.title)}</div>` + cs.map(sc => `<h4>${esc(sc.title || 'Untitled')}</h4>${A[sc.id].paras.map(p => `<p>${esc(p.text)}</p>`).join('')}`).join('') : ''; }).join('')}</div>`);
+
+  const counts = `${words.toLocaleString()} words · ${scenes.length} scenes · ${S.world.elements.filter(e => e.type === 'person').length} characters · ${S.world.elements.filter(e => e.type === 'place').length} locations`;
+  const logline = opts.edit ? `<div style="margin-top:20px">${field('logline', 'Logline', 2)}</div>` : (b.logline ? `<p class="b-logline">${esc(b.logline)}</p>` : '');
+  return `<div class="bible"><div class="b-cover"><p class="b-kicker">Series bible</p><h1>${esc(S.book.title || 'Untitled')}</h1><div class="b-meta">${counts} · ${esc(today)}</div>${logline}</div>
+<p class="b-kicker">Contents</p><ol class="b-toc">${sections.map(x => `<li><a href="#b-${x.id}">${esc(x.title)}</a><span>${x.n}</span></li>`).join('')}</ol>
+${sections.map(x => `<h2 id="b-${x.id}"><span>${String(x.n).padStart(2, '0')}</span>${esc(x.title)}</h2>${x.body}`).join('')}</div>`;
+}
+function bibleMarkdown(full) {
+  const b = bibleData(); const K = storyKeys(); const scenes = sceneList(); const A = {}; scenes.forEach(sc => { A[sc.id] = analyze(sc); });
+  const L = []; const appearsIn = id => scenes.filter(sc => A[sc.id].present.has(id));
+  L.push(`# ${S.book.title || 'Untitled'}`, '', '*Series bible*', '');
+  if (b.logline) L.push(`> ${b.logline}`, '');
+  if (b.premise) L.push('## Premise', '', b.premise, '');
+  if (b.tone) L.push('## Tone and style', '', b.tone, '');
+  for (const [type, title] of TYPE_ORDER) {
+    const els = S.world.elements.filter(e => e.type === type); if (!els.length) continue;
+    L.push(`## ${title}`, '');
+    for (const e of els) {
+      L.push(`### ${e.name}`, ''); if (e.aliases?.length) L.push(`*Also: ${e.aliases.join(', ')}*`, '');
+      if (e.summary) L.push(e.summary, ''); if (e.notes) L.push(`**Author's notes:** ${e.notes}`, '');
+      if (b.arcs[e.id]) L.push(`**Arc:** ${b.arcs[e.id]}`, '');
+      (S.world.media || []).filter(m => m.elIds.includes(e.id) && m.description).forEach(m => L.push(`**${type === 'person' ? 'Appearance' : 'Look'}${m.caption ? ' (' + m.caption + ')' : ''}:** ${m.description}`, ''));
+      if ((e.traits || []).length) { L.push('| Kind | Trait | Applies |', '| --- | --- | --- |'); e.traits.forEach(t => L.push(`| ${KINDS[t.kind]} | ${t.name}${t.absent ? ' (cannot be present)' : ''} | ${t.from ? 'after ' + sceneLabel(t.from) : 'from the start'}${t.until ? ', until ' + sceneLabel(t.until) : ''} |`)); L.push(''); }
+      const links = S.world.links.filter(l => l.a === e.id || l.b === e.id).map(l => { const A2 = elById(l.a), B2 = elById(l.b), D = elById(l.during); return A2 && B2 ? `- ${A2.name} *${l.rel}* ${B2.name}${D ? ' *during* ' + D.name : ''}` : ''; }).filter(Boolean);
+      if (links.length) L.push('**Relationships**', '', ...links, '');
+      const app = appearsIn(e.id); L.push(`**Appears in:** ${app.length ? app.map(sc => sceneLabel(sc.id)).join(' · ') : 'not yet in the manuscript (planned)'}`, '');
+    }
+  }
+  L.push('## Timeline', '', '| Story date | Scene | Where | Who |', '| --- | --- | --- | --- |');
+  [...scenes].sort((x, y) => cmpScenes(x.id, y.id, K)).forEach(sc => { const pr = [...A[sc.id].present].map(elById).filter(Boolean); const k = K[sc.id];
+    L.push(`| ${sc.date ? fmtDate(sc.date) : k.key ? '≈ ' + fmtDate(k.key) : 'Undated'} | ${sceneLabel(sc.id)} | ${pr.filter(e => e.type === 'place').map(e => e.name).join(', ') || '–'} | ${pr.filter(e => e.type === 'person').map(e => e.name).join(', ') || '–'} |`); });
+  L.push('', '## Chapter and scene breakdown', '');
+  S.book.chapters.forEach((c, ci) => { const cs = scenes.filter(sc => sc.chapterId === c.id); if (!cs.length) return; L.push(`### ${ci + 1}. ${c.title}`, '');
+    cs.forEach(sc => { L.push(`**${sc.title || 'Untitled'}** · ${sc.date ? fmtDate(sc.date) : 'Undated'}${sc.note ? ' · ' + sc.note : ''}`, '', sceneSynopsis(sc), '');
+      const pr = [...A[sc.id].present].map(elById).filter(Boolean); if (pr.length) L.push(`*With:* ${pr.map(e => e.name).join(', ')}`, '');
+      (S.world.media || []).filter(m => m.sceneId === sc.id && m.description).forEach(m => L.push(`*Image${m.caption ? ' (' + m.caption + ')' : ''}:* ${m.description}`, '')); }); });
+  const open = ISSUES.filter(i => i.sev !== 'idea');
+  L.push('## Continuity notes', ''); if (open.length) open.forEach(i => L.push(`- **${i.sev === 'error' ? 'Error' : 'Warning'}: ${i.title}**${i.scene ? ' (' + sceneLabel(i.scene) + ')' : ''}. ${i.detail || ''}`)); else L.push('No open continuity errors or warnings.'); L.push('');
+  if (full) { L.push('## Manuscript', ''); S.book.chapters.forEach((c, ci) => { const cs = scenes.filter(sc => sc.chapterId === c.id); if (!cs.length) return; L.push(`### ${ci + 1}. ${c.title}`, ''); cs.forEach(sc => { L.push(`#### ${sc.title || 'Untitled'}`, ''); A[sc.id].paras.forEach(p => L.push(p.text, '')); }); }); }
+  return L.join('\n');
+}
+let bibleImgs = new Map();
+async function openBible() {
+  flushEditor(); refreshIssues(true);
+  $('#bibleWrap').hidden = false; $('#bibleState').textContent = 'Loading images…';
+  renderBible();
+  bibleImgs = new Map();
+  for (const m of (S.world.media || [])) { const src = imgSrc(m); if (src) bibleImgs.set(m.id, src); }
+  renderBible(); $('#bibleState').textContent = bibleData().at ? `Prepared ${new Date(bibleData().at).toLocaleDateString()}` : '';
+}
+function renderBible() {
+  const st = $('.bible-scroll').scrollTop;
+  $('#biblePage').innerHTML = bibleHTML({ edit: true, img: bibleImgs, full: $('#bibleFull').checked });
+  $('.bible-scroll').scrollTop = st;
+}
+const bibleStyleEl = document.createElement('style'); bibleStyleEl.textContent = BIBLE_CSS; document.head.appendChild(bibleStyleEl);
+$('#bibleBtn').addEventListener('click', openBible);
+$('#bibleClose').addEventListener('click', () => { $('#bibleWrap').hidden = true; });
+$('#bibleFull').addEventListener('change', renderBible);
+$('#biblePage').addEventListener('input', e => { const k = e.target.dataset.bible; if (k) { bibleData()[k] = e.target.value; persistNovel(); } });
+$('#biblePage').addEventListener('click', e => { const a = e.target.closest('a[href^="#b-"]'); if (a) { e.preventDefault(); const t = document.getElementById(a.getAttribute('href').slice(1)); if (t) t.scrollIntoView({ behavior: 'smooth' }); } });
+async function getDownloads() { try { return window.claude?.use ? await withTimeout(window.claude.use('downloads'), 10000) : null; } catch (e) { return null; } }
+const fileBase = () => (S.book.title || 'Untitled').replace(/[\\/:*?"<>|]+/g, '').trim() + ' - Series Bible';
+async function saveFile(filename, data) {
+  const dl = await getDownloads(); if (!dl) { toast("Saving files isn't available in this view."); return; }
+  try { await dl.save({ filename, data }); toast('Bible exported.'); }
+  catch (e) { if (e?.code === 'declined') return; toast(e?.code === 'rate_limited' ? 'A save is already open. Try again in a moment.' : "Couldn't save the file here."); }
+}
+$('#bibleHtml').addEventListener('click', async () => {
+  const btn = $('#bibleHtml'); btn.disabled = true; $('#bibleState').textContent = 'Embedding images…';
+  const imgs = new Map(); for (const m of (S.world.media || [])) { const d = await imageDataUrl(m); if (d) imgs.set(m.id, d); }
+  const body = bibleHTML({ edit: false, img: imgs, full: $('#bibleFull').checked });
+  const doc = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(S.book.title || 'Untitled')}: Series bible</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Instrument+Sans:wght@400;600&family=JetBrains+Mono&display=swap"><style>body{margin:0;background:#eceeed}.bible{max-width:860px;margin:24px auto;box-shadow:0 10px 40px rgba(0,0,0,.15)}@media print{body{background:#fff}.bible{margin:0;box-shadow:none}}${BIBLE_CSS}</style></head><body>${body}</body></html>`;
+  $('#bibleState').textContent = ''; btn.disabled = false;
+  await saveFile(fileBase() + '.html', doc);
+});
+$('#bibleMd').addEventListener('click', () => saveFile(fileBase() + '.md', bibleMarkdown($('#bibleFull').checked)));
+$('#biblePrep').addEventListener('click', async () => {
+  const sample = await getSample(); if (!sample) { toast("AI isn't available in this view."); return; }
+  const btn = $('#biblePrep'); btn.disabled = true; $('#bibleState').textContent = 'Claude is reading the whole book…';
+  const scenes = sceneList(); const chars = S.world.elements.filter(e => ['person', 'group'].includes(e.type));
+  const prompt = `You are preparing a series bible for showrunners and screenwriters adapting a novel in progress. Use ONLY the story elements and manuscript below. Planned canon (author notes) may inform the premise but mark nothing as fact that the text contradicts.\n\nReturn only JSON:\n{"logline":"one sentence, max 35 words","premise":"one paragraph, 80 to 140 words: world, protagonist, central conflict, stakes","tone":"2 to 3 sentences on genre, tone, period and visual style","synopses":[{"id":"scene id","text":"2 to 3 sentences: what happens and what changes"}],"arcs":[{"id":"element id","text":"1 to 2 sentences: where they start, how they change so far, and what is unresolved"}]}\n\nScene ids: ${scenes.map(sc => `${sc.id} = ${sceneLabel(sc.id)}`).join('; ')}\nCharacter and group ids: ${chars.map(e => `${e.id} = ${e.name}`).join('; ') || '(none)'}\nWrite in the manuscript's language.\n\n${canonText()}\n\nMANUSCRIPT${manuscriptText(120000)}`;
+  try {
+    const r = await sample.json(prompt, { modelTier: 'default' }); const b = bibleData();
+    if (r?.logline) b.logline = String(r.logline); if (r?.premise) b.premise = String(r.premise); if (r?.tone) b.tone = String(r.tone);
+    (Array.isArray(r?.synopses) ? r.synopses : []).forEach(x => { if (x && S.scenes[x.id] && x.text) b.synopses[x.id] = String(x.text); });
+    (Array.isArray(r?.arcs) ? r.arcs : []).forEach(x => { if (x && elById(x.id) && x.text) b.arcs[x.id] = String(x.text); });
+    b.at = Date.now(); persistNovel(); renderBible(); $('#bibleState').textContent = 'Prepared just now. Edit anything before exporting.';
+  } catch (e) { $('#bibleState').textContent = e?.code === 'not_granted' ? 'AI access was not allowed.' : e?.code === 'rate_limited' ? 'Too many AI requests. Try again in a minute.' : "Claude didn't finish. Try again."; }
+  finally { btn.disabled = false; }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#bibleWrap').hidden && !$('#confirmHost').innerHTML) $('#bibleWrap').hidden = true; });
+
+/* ---------- design skins ---------- */
+const SKINS = ['classic', 'typewriter', 'corkboard'];
+function applySkin(s, remember) {
+  if (!SKINS.includes(s)) s = 'classic';
+  if (s === 'classic') delete document.documentElement.dataset.skin; else document.documentElement.dataset.skin = s;
+  $('#skinSel').value = s;
+  if (remember) { try { localStorage.setItem('storyworld.skin', s); } catch (e) {} try { history.replaceState(null, '', s === 'classic' ? location.pathname + location.search : '#' + s); } catch (e) {} }
+}
+$('#skinSel').addEventListener('change', e => applySkin(e.target.value, true));
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (SKINS.includes(h)) applySkin(h, false); });
+(() => { const h = location.hash.slice(1); let s = SKINS.includes(h) ? h : null; if (!s) { try { s = localStorage.getItem('storyworld.skin'); } catch (e) {} } applySkin(s || 'classic', false); })();
+
+/* ---------- boot ---------- */
+function start() {
+  S.world.media = S.world.media || [];
+  $('#bookTitle').value = S.book.title || '';
+  cur = S.book.sceneOrder.find(id => S.scenes[id]) || null;
+  if (!cur) { const st = blankStory(); S.book.chapters.push(...st.book.chapters); Object.assign(S.scenes, st.scenes); S.book.sceneOrder.push(...st.book.sceneOrder); cur = st.book.sceneOrder[0]; }
+  if (isDemo) cur = 's4';
+  renderBanner(); ISSUES = computeIssues(); renderIssueChip();
+  const id = cur; cur = null; clearTimeout(syncTimer); syncTimer = null; openScene(id);
+}
+(async () => {
+  S = sampleStory(); isDemo = true; ui.tab = 'issues'; start(); setStatus('Connecting…');
+  await initStore();
+  const data = await loadData();
+  if (data && data.book && data.scenes) {
+    S = { book: data.book, scenes: data.scenes, world: { elements: [], links: [], dismissed: {}, ...data.world } };
+    Object.values(S.scenes).forEach(sc => { sc.html = cleanHTML(sc.html); });
+    isDemo = false; anaCache.clear(); ui.tab = 'scene'; start(); setStatus(savedLabel());
+  } else if (!isDemo) {
+    persistAll().then(() => toast('Your copy of the sample is saved.'));
+  } else {
+    setStatus(store.mode === 'db' ? 'Sample story · not saved yet' : 'Sample story · saves in this browser');
+  }
+})();
+})();
+</script>
