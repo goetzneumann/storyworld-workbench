@@ -1,0 +1,18 @@
+{
+  "name": "storyworld-workbench",
+  "private": true,
+  "description": "A writing desk for novelists that remembers your story world and tells you when you break your own rules.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @storyworld/web",
+    "build": "npm run build -w @storyworld/core && npm run build -w @storyworld/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
